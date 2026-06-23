@@ -28,10 +28,11 @@ function isRateLimited(req) {
 module.exports = async (req, res) => {
   const configured = Boolean(process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL);
   const testMode = Boolean(String(process.env.CONFIRMLY_TEST_RECIPIENT || '').trim());
+  const senderUsesResendDev = /@(?:[a-z0-9-]+\.)?resend\.dev>/i.test(String(process.env.RESEND_FROM_EMAIL || ''));
 
-  // Safe status check for the UI. No secret values are returned.
+  // Safe status check for the UI. No secret values or recipient addresses are returned.
   if (req.method === 'GET') {
-    return res.status(200).json({ configured, testMode });
+    return res.status(200).json({ configured, testMode, senderUsesResendDev });
   }
 
   if (req.method !== 'POST') {
@@ -89,7 +90,8 @@ module.exports = async (req, res) => {
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
       console.error('Resend error', response.status, data);
-      return res.status(response.status).json({ error: data.message || 'Resend could not send this email.' });
+      const providerError = data.message || data.error?.message || data.error || data.name || 'Resend could not send this email.';
+      return res.status(response.status).json({ error: String(providerError) });
     }
     return res.status(200).json({ ok: true, id: data.id });
   } catch (error) {

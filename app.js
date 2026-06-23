@@ -9,7 +9,7 @@ function localISODate(date = new Date()) {
 function todayISO() { return localISODate(); }
 function shiftDate(days) { const d = new Date(); d.setDate(d.getDate() + days); return localISODate(d); }
 const demo = {
-  settings:{businessName:'Atlas Studio',channel:'WhatsApp',availableChannels:['WhatsApp','SMS','Email'],defaultValue:60,message48:'Hi {first_name}, just a quick reminder about your {service} appointment on {date} at {time}. Tap below to confirm or reschedule.',message4:'Hi {first_name}, we’re looking forward to seeing you at {time} today. Please confirm your appointment.'},
+  settings:{businessName:'Atlas Studio',channel:'Email',availableChannels:['WhatsApp','SMS','Email'],defaultValue:60,message48:'Hi {first_name}, just a quick reminder about your {service} appointment on {date} at {time}. Tap below to confirm or reschedule.',message4:'Hi {first_name}, we’re looking forward to seeing you at {time} today. Please confirm your appointment.'},
   appointments:[
     {id:'a1',client:'Sofia Petrou',contact:'+30 694 111 2233',service:'Colour + cut',date:todayISO(),time:'10:30',value:85,status:'confirmed',notes:'Prefers subtle warm tones.',reminderSent:true},
     {id:'a2',client:'Nikos Vassiliou',contact:'+30 697 345 6655',service:'Beard trim',date:todayISO(),time:'12:15',value:30,status:'waiting',notes:'',reminderSent:false},
@@ -31,6 +31,14 @@ function normaliseState(data){
   const next=data||structuredClone(demo);
   next.settings={...structuredClone(demo.settings),...(next.settings||{})};
   if(!Array.isArray(next.settings.availableChannels)||!next.settings.availableChannels.length) next.settings.availableChannels=['WhatsApp','SMS','Email'];
+  // Email is the product default. Migrate older builds that silently carried the old WhatsApp default.
+  if(!next.settings.channel || !next.settings.availableChannels.includes(next.settings.channel)) {
+    next.settings.channel = next.settings.availableChannels.includes('Email') ? 'Email' : next.settings.availableChannels[0];
+  }
+  if(next.settings.channel==='WhatsApp' && !next.settings.defaultChannelMigrationV9) {
+    next.settings.channel = next.settings.availableChannels.includes('Email') ? 'Email' : next.settings.channel;
+    next.settings.defaultChannelMigrationV9 = true;
+  }
   next.appointments=(next.appointments||[]).map(a=>({preferredChannel:'auto', reminderChannel:null, reminderHistory:[], reminderSkipped:false, ...a}));
   return next;
 }
@@ -151,23 +159,35 @@ function messageText(a){
 function isEmailAddress(value){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value||'').trim()); }
 async function deliverLiveEmail(a){
   const to=String(a.contact||'').trim();
-  if(!isEmailAddress(to)) throw new Error('This booking needs a valid email address before you can send an email reminder.');
-  const response=await fetch('/api/send-reminder',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','X-Confirmly-Request':'reminder'},
-    body:JSON.stringify({
-      to,
-      clientName:a.client,
-      service:a.service,
-      appointmentDate:prettyDate(a.date),
-      appointmentTime:a.time,
-      businessName:state.settings.businessName,
-      message:messageText(a)
-    })
-  });
-  const result=await response.json().catch(()=>({}));
-  if(!response.ok) throw new Error(result.error||'Email could not be sent. Check your live email setup in Vercel.');
-  return result;
+  if(!isEmailAddress(to)) throw new Error(`${a.client} needs a valid email address. Edit this booking and enter an email, or choose WhatsApp/SMS.`);
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),15000);
+  try {
+    const response=await fetch('/api/send-reminder',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-Confirmly-Request':'reminder'},
+      body:JSON.stringify({
+        to,
+        clientName:a.client,
+        service:a.service,
+        appointmentDate:prettyDate(a.date),
+        appointmentTime:a.time,
+        businessName:state.settings.businessName,
+        message:messageText(a)
+      }),
+      signal:controller.signal
+    });
+    const raw=await response.text();
+    let result={}; try { result=raw?JSON.parse(raw):{}; } catch { result={}; }
+    if(!response.ok) {
+      const detail=result.error||`Email service returned ${response.status}.`;
+      throw new Error(`${a.client}: ${detail}`);
+    }
+    return result;
+  } catch(error) {
+    if(error?.name==='AbortError') throw new Error(`${a.client}: email delivery timed out. Try again.`);
+    throw error;
+  } finally { clearTimeout(timeout); }
 }
 function resolvedChannel(a){
   const enabled = state.settings.availableChannels || ['WhatsApp','SMS','Email'];
@@ -190,7 +210,10 @@ function updateMessages(){
   holder.innerHTML=source.length?source.map(a=>{
     const channel=a.reminderChannel || resolvedChannel(a);
     const choices=channelsFor(a).map(ch=>`<button type="button" class="channel-send ${ch===channel?'primary-channel':''}" data-send-channel="${a.id}|${ch}">${channelActionLabel(ch)}</button>`).join('');
-    return `<article class="message-card"><div class="message-card-top"><div><strong>${escapeHtml(a.client)}</strong><div class="message-meta">${escapeHtml(a.service)} · ${prettyDate(a.date)} at ${a.time} ${a.reminderSent?`<span class="channel-badge">Sent via ${escapeHtml(channel)}</span>`:''}</div></div><span class="status ${a.reminderSent?'confirmed':'waiting'}">${a.reminderSent?'Sent':'Ready'}</span></div><div class="message-copy">${escapeHtml(messageText(a))}</div>${!a.reminderSent?`<div class="channel-picker"><span>Send via</span>${choices}</div><div class="message-actions"><button type="button" class="small-btn skip-btn" data-skip="${a.id}">Skip for now</button></div>`:`<div class="message-actions"><button type="button" class="small-btn skip-btn" data-actions="${a.id}">View booking</button></div>`}</article>`;
+    const emailWarning=!a.reminderSent && channel==='Email' && !isEmailAddress(a.contact)
+      ? `<div class="email-warning">Email is selected, but this booking has no valid email address. <button type="button" data-edit="${a.id}">Edit booking</button></div>` : '';
+    const failure=a.lastDeliveryError ? `<div class="email-warning error">Last delivery failed: ${escapeHtml(a.lastDeliveryError)} <button type="button" data-edit="${a.id}">Edit booking</button></div>` : '';
+    return `<article class="message-card"><div class="message-card-top"><div><strong>${escapeHtml(a.client)}</strong><div class="message-meta">${escapeHtml(a.service)} · ${prettyDate(a.date)} at ${a.time} ${a.reminderSent?`<span class="channel-badge">Sent via ${escapeHtml(channel)}</span>`:''}</div></div><span class="status ${a.reminderSent?'confirmed':'waiting'}">${a.reminderSent?'Sent':'Ready'}</span></div><div class="message-copy">${escapeHtml(messageText(a))}</div>${emailWarning}${failure}${!a.reminderSent?`<div class="channel-picker"><span>Send via</span>${choices}</div><div class="message-actions"><button type="button" class="small-btn skip-btn" data-skip="${a.id}">Skip for now</button></div>`:`<div class="message-actions"><button type="button" class="small-btn skip-btn" data-actions="${a.id}">View booking</button></div>`}</article>`;
   }).join(''):`<div class="empty-state"><strong>${currentQueue==='due'?'No reminders ready to send':'No sent reminders yet'}</strong><span>${currentQueue==='due'?'Nice — everyone has been contacted.':'Send a reminder to see it here.'}</span></div>`;
   document.querySelectorAll('.queue-tab').forEach(btn=>btn.classList.toggle('active',btn.dataset.queue===currentQueue));
 }
@@ -256,8 +279,8 @@ async function sendReminder(id, channel=state.settings.channel){
   if(!(state.settings.availableChannels||[]).includes(channel)){ showToast(`${channel} is disabled in Settings.`); return; }
   if(channel==='Email'){
     showToast(`Sending email to ${a.client}…`);
-    try { await deliverLiveEmail(a); }
-    catch(error){ showToast(error.message||'Email could not be sent.'); haptic(); return; }
+    try { await deliverLiveEmail(a); a.lastDeliveryError=''; }
+    catch(error){ a.lastDeliveryError=error.message||'Email could not be sent.'; save(); render(); showToast(a.lastDeliveryError); haptic(); return; }
   }
   a.reminderSent=true;
   a.reminderSkipped=false;
@@ -275,22 +298,24 @@ async function sendAll(){
   document.querySelectorAll('#sendAllBtn,#bannerSendBtn,#sendAllQueueBtn').forEach(btn=>btn.disabled=true);
   try {
     let liveEmails=0, demoChannels=0, failed=0;
+    const failures=[];
     for(const a of due){
       const channel=resolvedChannel(a);
       if(channel==='Email'){
-        try { await deliverLiveEmail(a); liveEmails++; }
-        catch(error){ failed++; continue; }
-      } else { demoChannels++; }
+        try { await deliverLiveEmail(a); liveEmails++; a.lastDeliveryError=''; }
+        catch(error){ failed++; a.lastDeliveryError=error.message||'Email could not be sent.'; failures.push(a.lastDeliveryError); continue; }
+      } else { demoChannels++; a.lastDeliveryError=''; }
       a.reminderSent=true;
       a.reminderSkipped=false;
       a.reminderChannel=channel;
       a.reminderHistory=[...(a.reminderHistory||[]),{channel,at:new Date().toISOString(),delivery:channel==='Email'?'live':'demo'}];
     }
-    if(liveEmails||demoChannels){ onboarding.reminderSent=true; save(); saveOnboarding(); render(); haptic('success'); }
+    if(liveEmails||demoChannels||failed){ save(); render(); }
+    if(liveEmails||demoChannels){ onboarding.reminderSent=true; saveOnboarding(); haptic('success'); }
     const parts=[];
     if(liveEmails) parts.push(`${liveEmails} email${liveEmails===1?'':'s'} sent`);
     if(demoChannels) parts.push(`${demoChannels} WhatsApp/SMS reminder${demoChannels===1?'':'s'} recorded in demo mode`);
-    if(failed) parts.push(`${failed} email${failed===1?'':'s'} failed`);
+    if(failed) parts.push(`${failed} email${failed===1?'':'s'} failed: ${failures[0]}`);
     showToast(parts.join(' · ')||'No reminders could be sent.');
   } finally {
     isSending=false;
@@ -360,6 +385,12 @@ function deleteAppointment(id){
 function addAppointment(e){
   e.preventDefault(); const fd=new FormData(e.target);
   const changes={client:fd.get('client').trim(),contact:fd.get('contact').trim(),service:fd.get('service').trim(),value:Number(fd.get('value')),date:fd.get('date'),time:fd.get('time'),notes:fd.get('notes').trim(),preferredChannel:fd.get('preferredChannel')||'auto'};
+  const effectiveChannel=changes.preferredChannel==='auto' ? state.settings.channel : changes.preferredChannel;
+  if(effectiveChannel==='Email' && !isEmailAddress(changes.contact)){
+    showToast('Email is selected. Enter a valid client email address, or choose WhatsApp/SMS.');
+    e.target.elements.contact.focus();
+    return;
+  }
   if(editingAppointmentId){
     const appointment=state.appointments.find(x=>x.id===editingAppointmentId);
     if(!appointment) { showToast('This booking could not be found.'); return; }
@@ -400,9 +431,9 @@ async function refreshEmailStatus(){
     try { result = raw ? JSON.parse(raw) : {}; } catch { result = {}; }
     if (response.ok && result.configured === true) {
       title.textContent = 'Live email is configured';
-      copy.textContent = result.testMode
-        ? 'Test mode is on: email can only be sent to your configured test address.'
-        : 'Email reminders can now be sent from this project.';
+      copy.textContent = result.senderUsesResendDev
+        ? 'Testing sender detected: use the email on your Resend account, or verify your own domain in Resend before sending to clients.'
+        : (result.testMode ? 'Test mode is on: email can only be sent to your configured test address.' : 'Email reminders can now be sent from this project.');
     } else if (response.status === 404) {
       title.textContent = 'Email status unavailable';
       copy.textContent = 'The email API route was not found. Upload the api folder, then redeploy on Vercel.';
@@ -471,8 +502,20 @@ function bind(){
     if(!enabled.length){ showToast('Choose at least one reminder channel.'); return; }
     state.settings.businessName=document.getElementById('businessName').value.trim()||'Your business';
     state.settings.availableChannels=enabled;
-    state.settings.channel=enabled.includes(document.getElementById('channel').value)?document.getElementById('channel').value:enabled[0];
-    state.settings.defaultValue=Number(document.getElementById('defaultValue').value||0);state.settings.message48=document.getElementById('message48').value;state.settings.message4=document.getElementById('message4').value;onboarding.detailsSet=true;save();saveOnboarding();render();showToast('Channels and settings saved.');
+    const chosenChannel=document.getElementById('channel').value;
+    state.settings.channel=enabled.includes(chosenChannel) ? chosenChannel : (enabled.includes('Email') ? 'Email' : enabled[0]);
+    state.settings.defaultChannelMigrationV9=true;
+    state.settings.defaultValue=Number(document.getElementById('defaultValue').value||0);
+    state.settings.message48=document.getElementById('message48').value;
+    state.settings.message4=document.getElementById('message4').value;
+    onboarding.detailsSet=true;
+    save();
+    // Re-read the saved value immediately to catch browser storage failures rather than silently reverting later.
+    const savedSettings=JSON.parse(localStorage.getItem(storageKey)||'{}').settings||{};
+    if(savedSettings.channel!==state.settings.channel){ showToast('Could not save the default channel. Check browser storage and try again.'); return; }
+    saveOnboarding();
+    render();
+    showToast(`${state.settings.channel} is now the default for Send all.`);
   });
   document.getElementById('previewTemplateBtn').addEventListener('click',()=>{const sample={client:'Sofia Petrou',service:'Haircut',date:todayISO(),time:'15:00'};showToast(messageText(sample));});
   document.getElementById('openGuideBtn').addEventListener('click',startGuide);

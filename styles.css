@@ -64,3 +64,5 @@ button{touch-action:manipulation}
 .delete-row-btn{color:#a84646;border-color:#f0cdcd}
 .delete-row-btn:hover{background:#fff0f0;border-color:#e6aaaa}
 @media(max-width:760px){.table-scroll td.booking-row-actions{position:absolute;right:9px;top:9px;width:auto;display:flex;gap:5px}.table-scroll td.booking-row-actions .row-action-btn{min-height:36px;padding:7px 9px;font-size:11px}.table-scroll tr{padding-right:122px}}
+
+.email-warning{margin-top:10px;padding:9px 10px;border-radius:10px;background:#fff4d7;color:#735b16;font-size:12px;line-height:1.4}.email-warning.error{background:#ffe6e6;color:#9f3030}.email-warning button{border:0;background:transparent;color:inherit;text-decoration:underline;font:inherit;font-weight:700;cursor:pointer;padding:0}

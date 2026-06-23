@@ -62,3 +62,15 @@ Edit and Delete are now visible directly on every appointment row, rather than h
 - The header refresh icon now refreshes saved data and never restores demo bookings.
 - Appointment data migrates from previous builds once, preserving an intentionally empty booking list.
 - Appointments re-render automatically every time the Appointments view is opened.
+
+
+## v9 – Email default persistence
+- Default "Send all" channel is Email on new installs.
+- Older WhatsApp defaults automatically migrate to Email once.
+- Settings now verify browser storage immediately after saving and show a clear error if the value cannot be persisted.
+
+
+## v10 email delivery diagnostics
+- Email bookings now require a valid email address when Email is selected.
+- Failed sends show the real reason next to the booking and in the Send all summary.
+- Resend testing-domain limitations are shown in Settings without exposing secrets.
