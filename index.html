@@ -39,6 +39,7 @@
           <p class="eyebrow" id="pageEyebrow">TUESDAY, JUNE 23</p>
           <h1 id="pageTitle">Good evening, Alex.</h1>
         </div>
+        <div class="workspace-title" id="workspaceTitle">Atlas Studio</div>
         <div class="top-actions">
           <button type="button" class="icon-btn install-app-btn hidden" id="installAppBtn" title="Install Confirmly" aria-label="Install Confirmly">⇩</button>
           <button type="button" class="outline-btn" id="sendAllBtn">Send all ready</button>
@@ -79,14 +80,39 @@
 
       <section id="messages" class="view">
         <div class="section-toolbar"><div><h2>Reminder queue</h2><p>Manual reminders ready to send. Confirmly records every delivery attempt.</p></div><button type="button" class="primary-btn" id="sendAllQueueBtn">Send all ready</button></div>
-        <div class="message-layout"><section class="panel queue-panel"><div class="queue-tabs"><button type="button" class="queue-tab active" data-queue="due">Ready <span id="dueCount">0</span></button><button type="button" class="queue-tab" data-queue="sent">Sent <span id="sentCount">0</span></button></div><div id="messageQueue"></div></section><aside class="panel automation-panel"><span class="tiny-label">REMINDER PLAN</span><h3>How your team sends reminders</h3><div class="flow-step"><span>1</span><div><strong>48 hours before</strong><p>Send when the booking is ready</p></div></div><div class="flow-line"></div><div class="flow-step"><span>2</span><div><strong>4 hours before</strong><p>Send a follow-up when needed</p></div></div><div class="flow-line"></div><div class="flow-step muted"><span>3</span><div><strong>After missed booking</strong><p>Record recovery and rebook actions</p></div></div><button type="button" class="outline-btn full" data-go="settings">Edit reminder copy</button></aside></div>
+        <div class="message-layout"><section class="panel queue-panel"><div class="queue-tabs"><button type="button" class="queue-tab active" data-queue="due">Ready <span id="dueCount">0</span></button><button type="button" class="queue-tab" data-queue="sent">Sent <span id="sentCount">0</span></button></div><div id="messageQueue"></div></section><aside class="panel automation-panel"><span class="tiny-label">REMINDER FLOW</span><h3>How your team follows up</h3><div id="reminderFlowSummary"></div><button type="button" class="outline-btn full" data-go="settings">Edit reminder flow</button></aside></div>
       </section>
 
       <section id="settings" class="view">
         <div class="section-toolbar"><div><h2>Settings</h2><p>Make Confirmly sound like your business.</p></div></div>
         <div class="settings-grid">
           <section class="panel setting-panel"><h3>Business details</h3><label>Business name<input id="businessName" value="Atlas Studio" autocomplete="organization" /></label><div class="setting-label">Reminder channels</div><div class="channel-options" id="availableChannels"><label class="channel-option"><input type="checkbox" value="WhatsApp" checked><span>◉</span><div><strong>WhatsApp</strong><small>Fastest confirmations</small></div></label><label class="channel-option"><input type="checkbox" value="SMS" checked><span>✦</span><div><strong>SMS</strong><small>Works without an app</small></div></label><label class="channel-option"><input type="checkbox" value="Email" checked><span>✉</span><div><strong>Email</strong><small>Best for longer details</small></div></label></div><label>Default channel for “Send all”<select id="channel"><option>WhatsApp</option><option>SMS</option><option>Email</option></select></label><label>Default appointment value (€)<input id="defaultValue" type="number" min="0" value="60" inputmode="decimal" /></label><label>Appearance<select id="themeSelect"><option value="light">Light mode</option><option value="dark">Dark mode</option></select></label><button type="button" class="primary-btn" id="saveSettingsBtn">Save settings</button></section>
-          <section class="panel setting-panel"><h3>Reminder copy</h3><label>48-hour reminder<textarea id="message48">Hi {first_name}, just a quick reminder about your {service} appointment on {date} at {time}. Tap below to confirm or reschedule.</textarea></label><label>4-hour reminder<textarea id="message4">Hi {first_name}, we’re looking forward to seeing you at {time} today. Please confirm your appointment.</textarea></label><button type="button" class="outline-btn" id="previewTemplateBtn">Preview message</button></section>
+          <section class="panel setting-panel reminder-flow-panel"><div class="flow-panel-heading"><div><h3>Reminder flow</h3><p>Choose what gets sent and when. Reminders are still sent manually from the queue.</p></div><span class="flow-manual-badge">Manual</span></div>
+
+<div class="flow-editor-card">
+  <div class="flow-editor-header"><label class="flow-toggle"><input type="checkbox" id="firstReminderEnabled"><span></span></label><div><strong>Step 1 — first reminder</strong><small>Primary confirmation request</small></div></div>
+  <div class="flow-editor-grid">
+    <label>Step name<input id="firstReminderName" maxlength="32" placeholder="First reminder"></label>
+    <label>Send before appointment<div class="timing-fields"><input id="firstReminderAmount" type="number" min="1" max="720" inputmode="numeric"><select id="firstReminderUnit"><option value="hours">hours</option><option value="days">days</option></select></div></label>
+  </div>
+  <label>Message<textarea id="message48">Hi {first_name}, just a quick reminder about your {service} appointment on {date} at {time}. Tap below to confirm or reschedule.</textarea></label>
+</div>
+
+<div class="flow-editor-card">
+  <div class="flow-editor-header"><label class="flow-toggle"><input type="checkbox" id="followUpEnabled"><span></span></label><div><strong>Step 2 — follow-up reminder</strong><small>Use it when confirmation is still missing</small></div></div>
+  <div class="flow-editor-grid">
+    <label>Step name<input id="followUpName" maxlength="32" placeholder="Follow-up reminder"></label>
+    <label>Send before appointment<div class="timing-fields"><input id="followUpAmount" type="number" min="1" max="720" inputmode="numeric"><select id="followUpUnit"><option value="hours">hours</option><option value="days">days</option></select></div></label>
+  </div>
+  <label>Message<textarea id="message4">Hi {first_name}, we’re looking forward to seeing you at {time} today. Please confirm your appointment.</textarea></label>
+</div>
+
+<div class="flow-editor-card recovery-flow-card">
+  <div class="flow-editor-header"><label class="flow-toggle"><input type="checkbox" id="recoveryEnabled"><span></span></label><div><strong>Step 3 — missed-booking recovery</strong><small>Show a recovery step after a no-show</small></div></div>
+  <label>Step name<input id="recoveryName" maxlength="32" placeholder="Missed-booking recovery"></label>
+</div>
+
+<div class="flow-editor-actions"><button type="button" class="outline-btn" id="previewTemplateBtn">Preview first reminder</button><button type="button" class="primary-btn" id="saveReminderFlowBtn">Save reminder flow</button></div></section>
           <section class="panel setting-panel"><h3>Live email delivery</h3><p class="setup-copy">Email reminders can be sent for real through Resend. Keep your API key in Vercel — never inside this app.</p><div class="live-status" aria-live="polite"><span class="live-dot"></span><div><strong id="emailStatusTitle">Checking live email setup…</strong><small id="emailStatusCopy">Confirmly is checking your Vercel email configuration.</small></div></div><button type="button" class="outline-btn" id="checkEmailStatusBtn">Check again</button><p class="setup-note">WhatsApp and SMS are still demo-only. For Email, the booking must contain a valid recipient email. When using the Resend testing sender, it can only send to the email on your Resend account until you verify your own domain.</p></section>
         </div>
       </section>
@@ -164,8 +190,8 @@
     <div class="modal upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgradeModalTitle">
       <div class="modal-header"><div><p class="eyebrow">CHOOSE YOUR PLAN</p><h2 id="upgradeModalTitle">Keep every booking on track.</h2><p class="upgrade-subtitle">Pick the plan that fits your team. Your selection is saved in this workspace.</p></div><button type="button" class="close-btn" data-close="upgradeModal" aria-label="Close plans">×</button></div>
       <div class="pricing-grid">
-        <article class="price-card" data-plan-card="Starter"><span class="plan-label">STARTER</span><h3>Starter</h3><p class="price"><strong>€19</strong><span>/ month</span></p><p>For solo service businesses getting started with reminders.</p><ul><li>Up to 150 bookings/month</li><li>Email reminders</li><li>Booking status tracking</li></ul><button type="button" class="outline-btn full" data-plan-select="Starter">Choose Starter</button></article>
-        <article class="price-card featured" data-plan-card="Pro"><span class="plan-badge">MOST POPULAR</span><span class="plan-label">PRO</span><h3>Pro</h3><p class="price"><strong>€39</strong><span>/ month</span></p><p>For teams that want to prevent more no-shows every day.</p><ul><li>Unlimited bookings</li><li>Priority reminder workflows</li><li>Team-ready reporting</li></ul><button type="button" class="primary-btn full" data-plan-select="Pro">Choose Pro</button></article>
+        <article class="price-card" data-plan-card="Starter"><span class="plan-label">STARTER</span><h3>Starter</h3><p class="price"><strong>€9</strong><span>/ month</span></p><p>For solo service businesses getting started with reminders.</p><ul><li>Up to 150 bookings/month</li><li>Email reminders</li><li>Booking status tracking</li></ul><button type="button" class="outline-btn full" data-plan-select="Starter">Choose Starter</button></article>
+        <article class="price-card featured" data-plan-card="Pro"><span class="plan-badge">MOST POPULAR</span><span class="plan-label">PRO</span><h3>Pro</h3><p class="price"><strong>€14</strong><span>/ month</span></p><p>For teams that want to prevent more no-shows every day.</p><ul><li>Unlimited bookings</li><li>Priority reminder workflows</li><li>Team-ready reporting</li></ul><button type="button" class="primary-btn full" data-plan-select="Pro">Choose Pro</button></article>
       </div>
       <p class="checkout-note">Payment checkout is not connected in this prototype yet. Choosing a plan updates this workspace only.</p>
     </div>

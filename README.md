@@ -51,3 +51,22 @@ This is still a prototype plan selector. Selecting Starter or Pro does not charg
 - Deleting a booking from View booking now immediately refreshes the active Reminder Queue tab.
 - Sent/Ready counts, booking table, dashboard metrics, and queue cards now stay in sync without manual refresh.
 - Updated PWA cache version.
+
+
+## v25
+- Updated Starter plan price to €9/month.
+- Updated Pro plan price to €14/month.
+
+
+## v26
+- Added the business name to the top header, centered in the middle of the top bar.
+- The header label updates automatically when the business name is changed in Settings.
+- Updated the service worker cache version.
+
+
+## v27
+- Renamed Reminder copy to Reminder flow.
+- Added editable first reminder, follow-up reminder, and missed-booking recovery steps.
+- Each step can be enabled/disabled, renamed, and given a custom timing. Reminder messages remain editable.
+- Reminder Queue flow summary now mirrors saved flow settings.
+- Updated PWA cache version.

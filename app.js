@@ -12,7 +12,7 @@ function localISODate(date = new Date()) {
 function todayISO() { return localISODate(); }
 function shiftDate(days) { const d = new Date(); d.setDate(d.getDate() + days); return localISODate(d); }
 const demo = {
-  settings:{businessName:'Atlas Studio',channel:'Email',availableChannels:['WhatsApp','SMS','Email'],defaultValue:60,theme:'light',message48:'Hi {first_name}, just a quick reminder about your {service} appointment on {date} at {time}. Tap below to confirm or reschedule.',message4:'Hi {first_name}, we’re looking forward to seeing you at {time} today. Please confirm your appointment.'},
+  settings:{businessName:'Atlas Studio',channel:'Email',availableChannels:['WhatsApp','SMS','Email'],defaultValue:60,theme:'light',reminderFlow:{first:{enabled:true,name:'First reminder',amount:48,unit:'hours'},followUp:{enabled:true,name:'Follow-up reminder',amount:4,unit:'hours'},recovery:{enabled:true,name:'Missed-booking recovery'}},message48:'Hi {first_name}, just a quick reminder about your {service} appointment on {date} at {time}. Tap below to confirm or reschedule.',message4:'Hi {first_name}, we’re looking forward to seeing you at {time} today. Please confirm your appointment.'},
   appointments:[
     {id:'a1',client:'Sofia Petrou',contact:'+30 694 111 2233',service:'Colour + cut',date:todayISO(),time:'10:30',value:85,status:'confirmed',notes:'Prefers subtle warm tones.',reminderSent:true},
     {id:'a2',client:'Nikos Vassiliou',contact:'+30 697 345 6655',service:'Beard trim',date:todayISO(),time:'12:15',value:30,status:'waiting',notes:'',reminderSent:false},
@@ -70,6 +70,21 @@ function normaliseState(data){
   next.settings={...structuredClone(demo.settings),...(next.settings||{})};
   next.settings.plan = ['Trial','Starter','Pro'].includes(next.settings.plan) ? next.settings.plan : 'Trial';
   if(!Array.isArray(next.settings.availableChannels)||!next.settings.availableChannels.length) next.settings.availableChannels=['WhatsApp','SMS','Email'];
+  const defaultFlow = structuredClone(demo.settings.reminderFlow);
+  next.settings.reminderFlow = {
+    first:{...defaultFlow.first,...(next.settings.reminderFlow?.first||{})},
+    followUp:{...defaultFlow.followUp,...(next.settings.reminderFlow?.followUp||{})},
+    recovery:{...defaultFlow.recovery,...(next.settings.reminderFlow?.recovery||{})}
+  };
+  ['first','followUp'].forEach(key=>{
+    const step=next.settings.reminderFlow[key];
+    step.enabled = step.enabled !== false;
+    step.name = String(step.name || defaultFlow[key].name).slice(0,32);
+    step.amount = Math.max(1, Math.min(720, Number(step.amount)||defaultFlow[key].amount));
+    step.unit = ['hours','days'].includes(step.unit) ? step.unit : defaultFlow[key].unit;
+  });
+  next.settings.reminderFlow.recovery.enabled = next.settings.reminderFlow.recovery.enabled !== false;
+  next.settings.reminderFlow.recovery.name = String(next.settings.reminderFlow.recovery.name || defaultFlow.recovery.name).slice(0,32);
   const storedTheme = readSavedTheme();
   next.settings.theme = ['light','dark'].includes(storedTheme) ? storedTheme : (['light','dark'].includes(next.settings.theme) ? next.settings.theme : 'light');
   const storedDefault = readSavedDefaultChannel();
@@ -308,6 +323,29 @@ function updateMessages(){
     });
   });
 }
+function updateWorkspaceTitle(){
+  const title=document.getElementById('workspaceTitle');
+  if(title) title.textContent = state.settings.businessName || 'Your business';
+}
+
+function flowTiming(step){
+  return `${step.amount} ${step.unit} before`;
+}
+function updateReminderFlowSummary(){
+  const holder=document.getElementById('reminderFlowSummary');
+  if(!holder) return;
+  const flow=state.settings.reminderFlow;
+  const steps=[
+    {key:'first', copy:'Ask the client to confirm'},
+    {key:'followUp', copy:'Follow up if they have not confirmed'},
+    {key:'recovery', copy:'Record recovery and rebook actions'}
+  ].filter(step=>flow[step.key].enabled);
+  holder.innerHTML = steps.length ? steps.map((item,index)=>{
+    const step=flow[item.key];
+    const timing=item.key==='recovery' ? 'After missed booking' : flowTiming(step);
+    return `<div class="flow-step ${item.key==='recovery'?'muted':''}"><span>${index+1}</span><div><strong>${escapeHtml(timing)}</strong><p>${escapeHtml(step.name || item.copy)}</p></div></div>${index<steps.length-1?'<div class="flow-line"></div>':''}`;
+  }).join('') : `<div class="empty-flow"><strong>No steps enabled</strong><span>Enable a reminder step in Settings.</span></div>`;
+}
 function updateSettings(){
   document.getElementById('businessName').value=state.settings.businessName;
   document.getElementById('channel').value=state.settings.channel;
@@ -315,6 +353,17 @@ function updateSettings(){
   document.getElementById('themeSelect').value=state.settings.theme || 'light';
   document.getElementById('message48').value=state.settings.message48;
   document.getElementById('message4').value=state.settings.message4;
+  const flow=state.settings.reminderFlow;
+  document.getElementById('firstReminderEnabled').checked=flow.first.enabled;
+  document.getElementById('firstReminderName').value=flow.first.name;
+  document.getElementById('firstReminderAmount').value=flow.first.amount;
+  document.getElementById('firstReminderUnit').value=flow.first.unit;
+  document.getElementById('followUpEnabled').checked=flow.followUp.enabled;
+  document.getElementById('followUpName').value=flow.followUp.name;
+  document.getElementById('followUpAmount').value=flow.followUp.amount;
+  document.getElementById('followUpUnit').value=flow.followUp.unit;
+  document.getElementById('recoveryEnabled').checked=flow.recovery.enabled;
+  document.getElementById('recoveryName').value=flow.recovery.name;
   document.querySelectorAll('#availableChannels input[type=checkbox]').forEach(input=>input.checked=(state.settings.availableChannels||[]).includes(input.value));
   document.querySelectorAll('#appointmentChannel option').forEach(option=>{ if(option.value!=='auto') option.disabled=!(state.settings.availableChannels||[]).includes(option.value); });
 }
@@ -329,7 +378,7 @@ function updatePlanUi(){
   if(copy) copy.textContent=plan==='Trial'?'Start preventing no-shows today.':'Your plan selection is saved locally.';
   if(button) button.textContent=plan==='Trial'?'Upgrade plan':'Manage plan';
 }
-function render(){ applyTheme(state.settings.theme); updateDashboard(); updateQuickStart(); updateAppointmentsTable(); updateMessages(); updateSettings(); updatePlanUi(); }
+function render(){ applyTheme(state.settings.theme); updateWorkspaceTitle(); updateDashboard(); updateQuickStart(); updateAppointmentsTable(); updateMessages(); updateSettings(); updateReminderFlowSummary(); updatePlanUi(); }
 
 function renderOnboarding(){
   const dots=[1,2,3];
@@ -741,7 +790,29 @@ function bind(){
     render();
     showToast(`Settings saved. ${state.settings.theme==='dark' ? 'Dark mode' : 'Light mode'} is now active.`);
   });
-  document.getElementById('previewTemplateBtn').addEventListener('click',()=>{const sample={client:'Sofia Petrou',service:'Haircut',date:todayISO(),time:'15:00'};showToast(messageText(sample));});
+  document.getElementById('saveReminderFlowBtn').addEventListener('click',()=>{
+    const numeric=(id,fallback)=>Math.max(1,Math.min(720,Number(document.getElementById(id).value)||fallback));
+    const clean=(id,fallback)=>document.getElementById(id).value.trim().slice(0,32)||fallback;
+    state.settings.reminderFlow={
+      first:{enabled:document.getElementById('firstReminderEnabled').checked,name:clean('firstReminderName','First reminder'),amount:numeric('firstReminderAmount',48),unit:document.getElementById('firstReminderUnit').value},
+      followUp:{enabled:document.getElementById('followUpEnabled').checked,name:clean('followUpName','Follow-up reminder'),amount:numeric('followUpAmount',4),unit:document.getElementById('followUpUnit').value},
+      recovery:{enabled:document.getElementById('recoveryEnabled').checked,name:clean('recoveryName','Missed-booking recovery')}
+    };
+    state.settings.message48=document.getElementById('message48').value.trim()||demo.settings.message48;
+    state.settings.message4=document.getElementById('message4').value.trim()||demo.settings.message4;
+    if(!state.settings.reminderFlow.first.enabled && !state.settings.reminderFlow.followUp.enabled && !state.settings.reminderFlow.recovery.enabled){
+      showToast('Keep at least one flow step enabled.');
+      return;
+    }
+    save();
+    render();
+    showToast('Reminder flow saved.');
+  });
+  document.getElementById('previewTemplateBtn').addEventListener('click',()=>{
+    const sample={client:'Sofia Petrou',service:'Haircut',date:todayISO(),time:'15:00'};
+    const first=state.settings.reminderFlow.first;
+    showToast(`${first.name} · ${flowTiming(first)}: ${messageText(sample)}`);
+  });
   document.getElementById('openGuideBtn').addEventListener('click',startGuide);
   document.getElementById('skipOnboardingBtn').addEventListener('click',()=>handleOnboarding('skip'));
   document.addEventListener('click',e=>{

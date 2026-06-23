@@ -1,4 +1,4 @@
-const CACHE = 'confirmly-delete-live-refresh-v24';
+const CACHE = 'confirmly-reminder-flow-v27';
 const APP_SHELL = [
   './',
   './index.html',
