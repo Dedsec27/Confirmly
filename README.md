@@ -56,3 +56,9 @@ Edit and Delete are now visible directly on every appointment row, rather than h
 ## v7 deletion sync
 - Deleting a booking instantly refreshes Bookings, dashboard metrics, reminder queue, and any current filtered list.
 - All booking statuses can be deleted: waiting, confirmed, rescheduled, no-show, and cancelled.
+
+
+## v8 persistence fix
+- The header refresh icon now refreshes saved data and never restores demo bookings.
+- Appointment data migrates from previous builds once, preserving an intentionally empty booking list.
+- Appointments re-render automatically every time the Appointments view is opened.

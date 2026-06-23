@@ -1,4 +1,4 @@
-const CACHE = 'confirmly-delete-sync-v7';
+const CACHE = 'confirmly-persistence-v8';
 const APP_SHELL = [
   './',
   './index.html',

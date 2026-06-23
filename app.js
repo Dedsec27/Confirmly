@@ -1,4 +1,5 @@
-const storageKey = 'confirmly_mvp_v2';
+const storageKey = 'confirmly_mvp_v3';
+const legacyStorageKeys = ['confirmly_mvp_v2', 'confirmly_mvp_v1'];
 const onboardingKey = 'confirmly_onboarding_v2';
 function localISODate(date = new Date()) {
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
@@ -35,9 +36,20 @@ function normaliseState(data){
 }
 function load(){
   try {
-    const stored=localStorage.getItem(storageKey) || localStorage.getItem('confirmly_mvp_v1');
-    return normaliseState(stored?JSON.parse(stored):structuredClone(demo));
-  } catch { return normaliseState(structuredClone(demo)); }
+    // Preserve an intentionally empty booking list. Only seed demo data when no saved state exists at all.
+    const ownState = localStorage.getItem(storageKey);
+    const legacyState = ownState === null
+      ? legacyStorageKeys.map(key => localStorage.getItem(key)).find(value => value !== null)
+      : null;
+    const raw = ownState !== null ? ownState : legacyState;
+    const loaded = raw !== null ? normaliseState(JSON.parse(raw)) : normaliseState(structuredClone(demo));
+    // One-time migration: keep data from prior builds, including an empty appointments array.
+    if (ownState === null && raw !== null) localStorage.setItem(storageKey, JSON.stringify(loaded));
+    return loaded;
+  } catch {
+    // Do not overwrite existing browser data if it cannot be read. Fall back only for this session.
+    return normaliseState(structuredClone(demo));
+  }
 }
 function loadOnboarding(){ try { return {...{step:1,completed:false,detailsSet:false,bookingAdded:false,reminderSent:false}, ...(JSON.parse(localStorage.getItem(onboardingKey)) || {})}; } catch { return {step:1,completed:false,detailsSet:false,bookingAdded:false,reminderSent:false}; } }
 function save(){ localStorage.setItem(storageKey,JSON.stringify(state)); }
@@ -416,7 +428,16 @@ function bind(){
     document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===view));
     const titles={dashboard:'Your appointment control center',appointments:'Your bookings',messages:'Send reminders',settings:'Settings'};
     const eyebrows={dashboard:'YOUR DAILY WORKFLOW',appointments:'BOOKINGS',messages:'REMINDERS',settings:'CONFIRMLY WORKSPACE'};
-    document.getElementById('pageTitle').textContent=titles[view]; document.getElementById('pageEyebrow').textContent=eyebrows[view]; document.getElementById('sidebar').classList.remove('open'); setMobileView(view); if(view==='settings') void refreshEmailStatus(); haptic();
+    document.getElementById('pageTitle').textContent=titles[view];
+    document.getElementById('pageEyebrow').textContent=eyebrows[view];
+    document.getElementById('sidebar').classList.remove('open');
+    setMobileView(view);
+    // Re-render the destination immediately so Appointments never opens as an empty screen.
+    if(view==='appointments') updateAppointmentsTable();
+    if(view==='messages') updateMessages();
+    if(view==='dashboard') updateDashboard();
+    if(view==='settings') void refreshEmailStatus();
+    haptic();
   }));
   document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>goToView(b.dataset.go)));
   document.getElementById('newAppointmentBtn').addEventListener('click',()=>{prepareAppointmentForm();openModal('appointmentModal')});
@@ -429,11 +450,19 @@ function bind(){
   document.getElementById('sendAllQueueBtn').addEventListener('click',(event)=>{ event.preventDefault(); void sendAll(); });
   document.getElementById('refreshAppointmentsBtn')?.addEventListener('click',(event)=>{
     event.preventDefault();
-    updateAppointmentsTable();
+    // Reload the persisted state; an empty array remains empty and is never reseeded with demo data.
+    state = load();
+    refreshBookingSurfaces();
     showToast('Appointments refreshed.');
   });
   document.getElementById('checkEmailStatusBtn')?.addEventListener('click',(event)=>{ event.preventDefault(); void refreshEmailStatus(); });
-  document.getElementById('seedBtn').addEventListener('click',()=>{state=structuredClone(demo);save();render();showToast('Demo bookings restored.');});
+  document.getElementById('refreshAppBtn')?.addEventListener('click',(event)=>{
+    event.preventDefault();
+    // This refreshes from saved browser data only. It never restores demo bookings.
+    state = load();
+    render();
+    showToast('App data refreshed.');
+  });
   document.getElementById('upgradeBtn').addEventListener('click',()=>showToast('Upgrade checkout would open here.'));
   document.getElementById('mobileMenu').addEventListener('click',()=>document.getElementById('sidebar').classList.toggle('open'));
   document.querySelectorAll('.queue-tab').forEach(b=>b.addEventListener('click',()=>{currentQueue=b.dataset.queue;updateMessages()}));
