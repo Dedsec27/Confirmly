@@ -383,9 +383,13 @@ function updateTopbarActions(view){
   const sendAllBtn=document.getElementById('sendAllBtn');
   const newAppointmentBtn=document.getElementById('newAppointmentBtn');
   const installAppBtn=document.getElementById('installAppBtn');
-  const hidden=view==='settings';
-  [sendAllBtn,newAppointmentBtn,installAppBtn].forEach(btn=>{ if(btn) btn.classList.toggle('hidden', hidden || btn.classList.contains('install-app-btn') && btn.classList.contains('hidden')); });
-  if(installAppBtn && !hidden && deferredInstallPrompt){ installAppBtn.classList.remove('hidden'); }
+  // The Reminder Queue already has its own primary "Send all ready" action in the page toolbar.
+  // Keep the top button hidden there to avoid duplicate actions. Settings remains distraction-free too.
+  const hideTopSendAll = view==='settings' || view==='messages';
+  const hideTopNewAppointment = view==='settings';
+  if(sendAllBtn) sendAllBtn.classList.toggle('hidden', hideTopSendAll);
+  if(newAppointmentBtn) newAppointmentBtn.classList.toggle('hidden', hideTopNewAppointment);
+  if(installAppBtn) installAppBtn.classList.toggle('hidden', hideTopNewAppointment || !deferredInstallPrompt);
 }
 function applySidebarPreference(){
   const shell=document.querySelector('.app-shell');

@@ -90,3 +90,9 @@ This is still a prototype plan selector. Selecting Starter or Pro does not charg
 - Sidebar now shows icon-only navigation with hover tooltips.
 - Hides the bulky trial card when collapsed and keeps a cleaner bottom account area.
 - Improved spacing, centering, and collapse button styling.
+
+
+## v31
+- Removed the duplicate top "Send all ready" button from Reminder Queue.
+- Kept the in-page Reminder Queue action as the single send-all control.
+- Updated the PWA cache version.
