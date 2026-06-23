@@ -5,13 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Confirmly — Reduce No-Shows</title>
   <meta name="description" content="A focused appointment confirmation and no-show prevention dashboard." />
-  <meta name="theme-color" content="#1c7650" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="Confirmly" />
-  <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="apple-touch-icon" href="icons/icon-180.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
@@ -22,40 +15,40 @@
     <aside class="sidebar" id="sidebar">
       <div class="brand"><span class="brand-mark">✓</span><span>confirmly</span></div>
       <nav class="nav-links" aria-label="Primary">
-        <button class="nav-item active" data-view="dashboard"><span>◫</span> Overview</button>
-        <button class="nav-item" data-view="appointments"><span>▣</span> Appointments</button>
-        <button class="nav-item" data-view="messages"><span>✉</span> Reminder queue</button>
-        <button class="nav-item" data-view="settings"><span>⚙</span> Settings</button>
+        <button type="button" class="nav-item active" data-view="dashboard"><span>◫</span> Overview</button>
+        <button type="button" class="nav-item" data-view="appointments"><span>▣</span> Appointments</button>
+        <button type="button" class="nav-item" data-view="messages"><span>✉</span> Reminder queue</button>
+        <button type="button" class="nav-item" data-view="settings"><span>⚙</span> Settings</button>
       </nav>
       <div class="sidebar-bottom">
         <div class="trial-card">
           <span class="tiny-label">FREE TRIAL</span>
           <strong>11 days left</strong>
           <p>Start preventing no-shows today.</p>
-          <button class="ghost-btn" id="upgradeBtn">Upgrade plan</button>
+          <button type="button" class="ghost-btn" id="upgradeBtn">Upgrade plan</button>
         </div>
-        <div class="account"><div class="avatar">AM</div><div><strong>Alex Morgan</strong><span>Owner</span></div><button class="more">•••</button></div>
+        <div class="account"><div class="avatar">AM</div><div><strong>Alex Morgan</strong><span>Owner</span></div><button type="button" class="more">•••</button></div>
       </div>
     </aside>
 
     <main class="main-content">
       <header class="topbar">
-        <button class="mobile-menu" id="mobileMenu" aria-label="Open navigation">☰</button>
+        <button type="button" class="mobile-menu" id="mobileMenu" aria-label="Open navigation">☰</button>
         <div>
           <p class="eyebrow" id="pageEyebrow">TUESDAY, JUNE 23</p>
           <h1 id="pageTitle">Good evening, Alex.</h1>
         </div>
         <div class="top-actions">
-          <button class="icon-btn install-app-btn hidden" id="installAppBtn" title="Install Confirmly" aria-label="Install Confirmly">⇩</button><button class="icon-btn" id="seedBtn" title="Restore demo data">↻</button>
-          <button class="outline-btn" id="sendAllBtn">Send all ready</button>
-          <button class="primary-btn" id="newAppointmentBtn">+ New appointment</button>
+          <button type="button" class="icon-btn install-app-btn hidden" id="installAppBtn" title="Install Confirmly" aria-label="Install Confirmly">⇩</button><button type="button" class="icon-btn" id="seedBtn" title="Restore demo data">↻</button>
+          <button type="button" class="outline-btn" id="sendAllBtn">Send all ready</button>
+          <button type="button" class="primary-btn" id="newAppointmentBtn">+ New appointment</button>
         </div>
       </header>
 
       <section id="dashboard" class="view active">
         <div class="insight-banner">
           <div><span class="pulse-dot"></span><strong>3 appointments need confirmation today.</strong><p>Send reminders now to protect an estimated €180 in revenue.</p></div>
-          <button class="dark-btn" id="bannerSendBtn">Send reminders</button>
+          <button type="button" class="dark-btn" id="bannerSendBtn">Send reminders</button>
         </div>
 
         <div class="metric-grid">
@@ -67,7 +60,7 @@
 
         <div class="dashboard-grid">
           <section class="panel upcoming-panel">
-            <div class="panel-header"><div><h2>Today’s appointments</h2><p>Keep the day moving, without the chasing.</p></div><button class="text-btn" data-go="appointments">View all →</button></div>
+            <div class="panel-header"><div><h2>Today’s appointments</h2><p>Keep the day moving, without the chasing.</p></div><button type="button" class="text-btn" data-go="appointments">View all →</button></div>
             <div id="todayAppointments" class="appointment-list"></div>
           </section>
           <section class="panel performance-panel">
@@ -79,20 +72,20 @@
       </section>
 
       <section id="appointments" class="view">
-        <div class="section-toolbar"><div><h2>Appointments</h2><p>Manage confirmations, status and outcomes in one place.</p></div><div class="toolbar-controls"><select id="statusFilter"><option value="all">All statuses</option><option value="waiting">Waiting</option><option value="confirmed">Confirmed</option><option value="rescheduled">Rescheduled</option><option value="no-show">No-show</option><option value="cancelled">Cancelled</option></select><input type="search" id="searchInput" placeholder="Search client" /></div></div>
+        <div class="section-toolbar"><div><h2>Appointments</h2><p>Manage confirmations, status and outcomes in one place.</p></div><div class="toolbar-controls"><button type="button" class="outline-btn" id="refreshAppointmentsBtn" aria-label="Refresh appointments">↻ Refresh</button><select id="statusFilter"><option value="all">All statuses</option><option value="waiting">Waiting</option><option value="confirmed">Confirmed</option><option value="rescheduled">Rescheduled</option><option value="no-show">No-show</option><option value="cancelled">Cancelled</option></select><input type="search" id="searchInput" placeholder="Search client" /></div></div>
         <div class="table-panel"><div class="table-scroll"><table><thead><tr><th>Client</th><th>Service</th><th>When</th><th>Value</th><th>Status</th><th></th></tr></thead><tbody id="appointmentsTable"></tbody></table></div></div>
       </section>
 
       <section id="messages" class="view">
-        <div class="section-toolbar"><div><h2>Reminder queue</h2><p>Manual reminders ready to send. Confirmly records every delivery attempt.</p></div><button class="primary-btn" id="sendAllQueueBtn">Send all ready</button></div>
-        <div class="message-layout"><section class="panel queue-panel"><div class="queue-tabs"><button class="queue-tab active" data-queue="due">Ready <span id="dueCount">0</span></button><button class="queue-tab" data-queue="sent">Sent <span id="sentCount">0</span></button></div><div id="messageQueue"></div></section><aside class="panel automation-panel"><span class="tiny-label">REMINDER PLAN</span><h3>How your team sends reminders</h3><div class="flow-step"><span>1</span><div><strong>48 hours before</strong><p>Send when the booking is ready</p></div></div><div class="flow-line"></div><div class="flow-step"><span>2</span><div><strong>4 hours before</strong><p>Send a follow-up when needed</p></div></div><div class="flow-line"></div><div class="flow-step muted"><span>3</span><div><strong>After missed booking</strong><p>Record recovery and rebook actions</p></div></div><button class="outline-btn full" data-go="settings">Edit reminder copy</button></aside></div>
+        <div class="section-toolbar"><div><h2>Reminder queue</h2><p>Manual reminders ready to send. Confirmly records every delivery attempt.</p></div><button type="button" class="primary-btn" id="sendAllQueueBtn">Send all ready</button></div>
+        <div class="message-layout"><section class="panel queue-panel"><div class="queue-tabs"><button type="button" class="queue-tab active" data-queue="due">Ready <span id="dueCount">0</span></button><button type="button" class="queue-tab" data-queue="sent">Sent <span id="sentCount">0</span></button></div><div id="messageQueue"></div></section><aside class="panel automation-panel"><span class="tiny-label">REMINDER PLAN</span><h3>How your team sends reminders</h3><div class="flow-step"><span>1</span><div><strong>48 hours before</strong><p>Send when the booking is ready</p></div></div><div class="flow-line"></div><div class="flow-step"><span>2</span><div><strong>4 hours before</strong><p>Send a follow-up when needed</p></div></div><div class="flow-line"></div><div class="flow-step muted"><span>3</span><div><strong>After missed booking</strong><p>Record recovery and rebook actions</p></div></div><button type="button" class="outline-btn full" data-go="settings">Edit reminder copy</button></aside></div>
       </section>
 
       <section id="settings" class="view">
         <div class="section-toolbar"><div><h2>Settings</h2><p>Make Confirmly sound like your business.</p></div></div>
         <div class="settings-grid">
-          <section class="panel setting-panel"><h3>Business details</h3><label>Business name<input id="businessName" value="Atlas Studio" autocomplete="organization" /></label><div class="setting-label">Reminder channels</div><div class="channel-options" id="availableChannels"><label class="channel-option"><input type="checkbox" value="WhatsApp" checked><span>◉</span><div><strong>WhatsApp</strong><small>Fastest confirmations</small></div></label><label class="channel-option"><input type="checkbox" value="SMS" checked><span>✦</span><div><strong>SMS</strong><small>Works without an app</small></div></label><label class="channel-option"><input type="checkbox" value="Email" checked><span>✉</span><div><strong>Email</strong><small>Best for longer details</small></div></label></div><label>Default channel for “Send all”<select id="channel"><option>WhatsApp</option><option>SMS</option><option>Email</option></select></label><label>Default appointment value (€)<input id="defaultValue" type="number" min="0" value="60" inputmode="decimal" /></label><button class="primary-btn" id="saveSettingsBtn">Save settings</button></section>
-          <section class="panel setting-panel"><h3>Reminder copy</h3><label>48-hour reminder<textarea id="message48">Hi {first_name}, just a quick reminder about your {service} appointment on {date} at {time}. Tap below to confirm or reschedule.</textarea></label><label>4-hour reminder<textarea id="message4">Hi {first_name}, we’re looking forward to seeing you at {time} today. Please confirm your appointment.</textarea></label><button class="outline-btn" id="previewTemplateBtn">Preview message</button></section>
+          <section class="panel setting-panel"><h3>Business details</h3><label>Business name<input id="businessName" value="Atlas Studio" autocomplete="organization" /></label><div class="setting-label">Reminder channels</div><div class="channel-options" id="availableChannels"><label class="channel-option"><input type="checkbox" value="WhatsApp" checked><span>◉</span><div><strong>WhatsApp</strong><small>Fastest confirmations</small></div></label><label class="channel-option"><input type="checkbox" value="SMS" checked><span>✦</span><div><strong>SMS</strong><small>Works without an app</small></div></label><label class="channel-option"><input type="checkbox" value="Email" checked><span>✉</span><div><strong>Email</strong><small>Best for longer details</small></div></label></div><label>Default channel for “Send all”<select id="channel"><option>WhatsApp</option><option>SMS</option><option>Email</option></select></label><label>Default appointment value (€)<input id="defaultValue" type="number" min="0" value="60" inputmode="decimal" /></label><button type="button" class="primary-btn" id="saveSettingsBtn">Save settings</button></section>
+          <section class="panel setting-panel"><h3>Reminder copy</h3><label>48-hour reminder<textarea id="message48">Hi {first_name}, just a quick reminder about your {service} appointment on {date} at {time}. Tap below to confirm or reschedule.</textarea></label><label>4-hour reminder<textarea id="message4">Hi {first_name}, we’re looking forward to seeing you at {time} today. Please confirm your appointment.</textarea></label><button type="button" class="outline-btn" id="previewTemplateBtn">Preview message</button></section>
           <section class="panel setting-panel"><h3>Live email delivery</h3><p class="setup-copy">Email reminders can be sent for real through Resend. Keep your API key in Vercel — never inside this app.</p><div class="live-status"><span class="live-dot"></span><div><strong id="emailStatusTitle">Checking live email setup…</strong><small id="emailStatusCopy">Checking this Vercel deployment.</small></div></div><p class="setup-note">WhatsApp and SMS are still demo-only in this build. Select Email on a booking and use your own email address to test live delivery.</p></section>
         </div>
       </section>
@@ -100,16 +93,16 @@
   </div>
 
   <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
-    <button class="mobile-nav-item active" data-mobile-view="dashboard"><span>⌂</span><b>Home</b></button>
-    <button class="mobile-nav-item" data-mobile-view="appointments"><span>▣</span><b>Bookings</b></button>
-    <button class="mobile-nav-item" data-mobile-view="messages"><span>✉</span><b>Reminders</b></button>
-    <button class="mobile-nav-item" data-mobile-view="settings"><span>⚙</span><b>Settings</b></button>
+    <button type="button" class="mobile-nav-item active" data-mobile-view="dashboard"><span>⌂</span><b>Home</b></button>
+    <button type="button" class="mobile-nav-item" data-mobile-view="appointments"><span>▣</span><b>Bookings</b></button>
+    <button type="button" class="mobile-nav-item" data-mobile-view="messages"><span>✉</span><b>Reminders</b></button>
+    <button type="button" class="mobile-nav-item" data-mobile-view="settings"><span>⚙</span><b>Settings</b></button>
   </nav>
-  <button class="mobile-add-fab" id="mobileAddBtn" aria-label="Add a new booking"><span>+</span><b>New booking</b></button>
+  <button type="button" class="mobile-add-fab" id="mobileAddBtn" aria-label="Add a new booking"><span>+</span><b>New booking</b></button>
 
   <div class="modal-backdrop hidden" id="appointmentModal">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-      <div class="modal-header"><div><p class="eyebrow">NEW BOOKING</p><h2 id="modalTitle">Add appointment</h2></div><button class="close-btn" data-close="appointmentModal">×</button></div>
+      <div class="modal-header"><div><p class="eyebrow">NEW BOOKING</p><h2 id="modalTitle">Add appointment</h2></div><button type="button" class="close-btn" data-close="appointmentModal">×</button></div>
       <form id="appointmentForm" class="form-grid">
         <label>Client name<input name="client" required placeholder="e.g. Sofia Petrou" /></label>
         <label>Phone or email<input name="contact" required placeholder="e.g. +30 69..." /></label>
@@ -124,13 +117,8 @@
     </div>
   </div>
 
-  <div class="modal-backdrop hidden" id="actionModal"><div class="modal compact"><div class="modal-header"><div><p class="eyebrow">APPOINTMENT ACTION</p><h2 id="actionTitle">Update appointment</h2></div><button class="close-btn" data-close="actionModal">×</button></div><div id="actionContent"></div></div></div>
+  <div class="modal-backdrop hidden" id="actionModal"><div class="modal compact"><div class="modal-header"><div><p class="eyebrow">APPOINTMENT ACTION</p><h2 id="actionTitle">Update appointment</h2></div><button type="button" class="close-btn" data-close="actionModal">×</button></div><div id="actionContent"></div></div></div>
   <div class="toast" id="toast"></div>
-  <aside class="ios-install-banner hidden" id="iosInstallBanner" role="status">
-    <div class="ios-install-icon"><img src="icons/icon-180.png" alt="" /></div>
-    <div class="ios-install-copy"><strong>Install Confirmly on your iPhone</strong><span>Tap <b class="share-symbol">Share</b>, then <b>Add to Home Screen</b>.</span></div>
-    <button class="ios-install-close" id="iosInstallClose" aria-label="Dismiss install tip">×</button>
-  </aside>
   <script src="app.js"></script>
 </body>
 </html>

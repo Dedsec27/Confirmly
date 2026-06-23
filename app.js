@@ -80,10 +80,10 @@ function updateDashboard(){
   const due=apps.filter(a=>a.status==='waiting'&&!a.reminderSent&&!a.reminderSkipped);
   document.querySelector('.insight-banner strong').textContent=due.length?`${due.length} client${due.length===1?'':'s'} still need confirmation.`:'Your reminder queue is clear.';
   document.getElementById('bannerCopy').textContent=due.length?`Send ${due.length===1?'a reminder':'reminders'} now to protect an estimated ${money(due.reduce((s,a)=>s+Number(a.value||0),0))}.`:'Add a new booking whenever an appointment is made.';
-  document.getElementById('bannerSendBtn').textContent=due.length?`Send via ${state.settings.channel}`:'Add booking';
+  document.getElementById('bannerSendBtn').textContent=due.length ? 'View reminders' : 'View reminders';
 
   const today=sortedAppointments().filter(isToday);
-  document.getElementById('todayAppointments').innerHTML=today.length?today.map(a=>`<div class="appointment-row"><div class="time-block"><strong>${a.time}</strong><span>${a.time<'12:00'?'AM':'PM'}</span></div><div><div class="client-name">${escapeHtml(a.client)}</div><div class="service-name">${escapeHtml(a.service)}</div></div><div class="row-value">${money(a.value)}</div><div><span class="status ${a.status}">${statusLabel(a.status)}</span><button class="row-menu" title="Update booking" data-actions="${a.id}">⋮</button></div></div>`).join(''):`<div class="empty-state"><strong>No bookings today</strong><span>Add your first booking, then Confirmly will queue the reminder.</span></div>`;
+  document.getElementById('todayAppointments').innerHTML=today.length?today.map(a=>`<div class="appointment-row"><div class="time-block"><strong>${a.time}</strong><span>${a.time<'12:00'?'AM':'PM'}</span></div><div><div class="client-name">${escapeHtml(a.client)}</div><div class="service-name">${escapeHtml(a.service)}</div></div><div class="row-value">${money(a.value)}</div><div><span class="status ${a.status}">${statusLabel(a.status)}</span><button type="button" class="row-menu" title="Update booking" data-actions="${a.id}">⋮</button></div></div>`).join(''):`<div class="empty-state"><strong>No bookings today</strong><span>Add your first booking, then Confirmly will queue the reminder.</span></div>`;
 }
 
 function updateQuickStart(){
@@ -101,7 +101,7 @@ function updateAppointmentsTable(){
   const status=document.getElementById('statusFilter').value;
   const term=document.getElementById('searchInput').value.toLowerCase().trim();
   const rows=sortedAppointments().filter(a=>(status==='all'||a.status===status)&&(`${a.client} ${a.service} ${a.contact}`).toLowerCase().includes(term));
-  document.getElementById('appointmentsTable').innerHTML=rows.length?rows.map(a=>`<tr><td class="client-cell"><strong>${escapeHtml(a.client)}</strong><span>${escapeHtml(a.contact)}</span></td><td data-label="Service">${escapeHtml(a.service)}</td><td data-label="When"><strong>${prettyDate(a.date)}</strong><span style="color:#7b8680;font-size:11px">${a.time}</span></td><td data-label="Value">${money(a.value)}</td><td data-label="Status"><span class="status ${a.status}">${statusLabel(a.status)}</span></td><td><button class="row-menu" aria-label="Update ${escapeHtml(a.client)}" data-actions="${a.id}">⋮</button></td></tr>`).join(''):`<tr><td colspan="6"><div class="empty-state"><strong>No bookings found</strong><span>Try a different filter or add a new booking.</span></div></td></tr>`;
+  document.getElementById('appointmentsTable').innerHTML=rows.length?rows.map(a=>`<tr><td class="client-cell"><strong>${escapeHtml(a.client)}</strong><span>${escapeHtml(a.contact)}</span></td><td data-label="Service">${escapeHtml(a.service)}</td><td data-label="When"><strong>${prettyDate(a.date)}</strong><span style="color:#7b8680;font-size:11px">${a.time}</span></td><td data-label="Value">${money(a.value)}</td><td data-label="Status"><span class="status ${a.status}">${statusLabel(a.status)}</span></td><td><button type="button" class="row-menu" aria-label="Update ${escapeHtml(a.client)}" data-actions="${a.id}">⋮</button></td></tr>`).join(''):`<tr><td colspan="6"><div class="empty-state"><strong>No bookings found</strong><span>Try a different filter or add a new booking.</span></div></td></tr>`;
 }
 
 function messageText(a){
@@ -152,8 +152,8 @@ function updateMessages(){
   const holder=document.getElementById('messageQueue');
   holder.innerHTML=source.length?source.map(a=>{
     const channel=a.reminderChannel || resolvedChannel(a);
-    const choices=channelsFor(a).map(ch=>`<button class="channel-send ${ch===channel?'primary-channel':''}" data-send-channel="${a.id}|${ch}">${channelActionLabel(ch)}</button>`).join('');
-    return `<article class="message-card"><div class="message-card-top"><div><strong>${escapeHtml(a.client)}</strong><div class="message-meta">${escapeHtml(a.service)} · ${prettyDate(a.date)} at ${a.time} ${a.reminderSent?`<span class="channel-badge">Sent via ${escapeHtml(channel)}</span>`:''}</div></div><span class="status ${a.reminderSent?'confirmed':'waiting'}">${a.reminderSent?'Sent':'Ready'}</span></div><div class="message-copy">${escapeHtml(messageText(a))}</div>${!a.reminderSent?`<div class="channel-picker"><span>Send via</span>${choices}</div><div class="message-actions"><button class="small-btn skip-btn" data-skip="${a.id}">Skip for now</button></div>`:`<div class="message-actions"><button class="small-btn skip-btn" data-actions="${a.id}">View booking</button></div>`}</article>`;
+    const choices=channelsFor(a).map(ch=>`<button type="button" class="channel-send ${ch===channel?'primary-channel':''}" data-send-channel="${a.id}|${ch}">${channelActionLabel(ch)}</button>`).join('');
+    return `<article class="message-card"><div class="message-card-top"><div><strong>${escapeHtml(a.client)}</strong><div class="message-meta">${escapeHtml(a.service)} · ${prettyDate(a.date)} at ${a.time} ${a.reminderSent?`<span class="channel-badge">Sent via ${escapeHtml(channel)}</span>`:''}</div></div><span class="status ${a.reminderSent?'confirmed':'waiting'}">${a.reminderSent?'Sent':'Ready'}</span></div><div class="message-copy">${escapeHtml(messageText(a))}</div>${!a.reminderSent?`<div class="channel-picker"><span>Send via</span>${choices}</div><div class="message-actions"><button type="button" class="small-btn skip-btn" data-skip="${a.id}">Skip for now</button></div>`:`<div class="message-actions"><button type="button" class="small-btn skip-btn" data-actions="${a.id}">View booking</button></div>`}</article>`;
   }).join(''):`<div class="empty-state"><strong>${currentQueue==='due'?'No reminders ready to send':'No sent reminders yet'}</strong><span>${currentQueue==='due'?'Nice — everyone has been contacted.':'Send a reminder to see it here.'}</span></div>`;
   document.querySelectorAll('.queue-tab').forEach(btn=>btn.classList.toggle('active',btn.dataset.queue===currentQueue));
 }
@@ -202,7 +202,7 @@ function openActions(id){
   const a=state.appointments.find(x=>x.id===id); if(!a)return;
   activeAppointmentId=id;
   document.getElementById('actionTitle').textContent=a.client;
-  document.getElementById('actionContent').innerHTML=`<div class="message-copy"><strong>${escapeHtml(a.service)}</strong><br>${prettyDate(a.date)} at ${a.time} · ${money(a.value)}</div><p style="font-size:12px;color:#6f7a74;margin:0 0 12px">Choose what happened with this booking.</p><div class="action-list">${a.status==='waiting'?'<button class="action-option" data-update="confirmed">✓ Client confirmed</button><button class="action-option" data-update="rescheduled">↗ Client rescheduled</button><button class="action-option danger" data-update="no-show">! Client did not show up</button><button class="action-option" data-requeue="${a.id}">↻ Re-queue reminder</button><button class="action-option" data-update="cancelled">× Cancel booking</button>':`<button class="action-option" data-update="waiting">↺ Move back to waiting</button><button class="action-option danger" data-delete="${a.id}">Delete booking</button>`}</div>`;
+  document.getElementById('actionContent').innerHTML=`<div class="message-copy"><strong>${escapeHtml(a.service)}</strong><br>${prettyDate(a.date)} at ${a.time} · ${money(a.value)}</div><p style="font-size:12px;color:#6f7a74;margin:0 0 12px">Choose what happened with this booking.</p><div class="action-list">${a.status==='waiting'?'<button type="button" class="action-option" data-update="confirmed">✓ Client confirmed</button><button type="button" class="action-option" data-update="rescheduled">↗ Client rescheduled</button><button type="button" class="action-option danger" data-update="no-show">! Client did not show up</button><button type="button" class="action-option" data-requeue="${a.id}">↻ Re-queue reminder</button><button type="button" class="action-option" data-update="cancelled">× Cancel booking</button>':`<button type="button" class="action-option" data-update="waiting">↺ Move back to waiting</button><button type="button" class="action-option danger" data-delete="${a.id}">Delete booking</button>`}</div>`;
   openModal('actionModal');
 }
 function updateStatus(status){
@@ -230,7 +230,7 @@ async function sendReminder(id, channel=state.settings.channel){
 async function sendAll(){
   if (isSending) return;
   const due=state.appointments.filter(a=>a.status==='waiting'&&!a.reminderSent&&!a.reminderSkipped);
-  if(!due.length){ document.getElementById('newAppointmentBtn').click(); return; }
+  if(!due.length){ showToast('No reminders are ready to send.'); return; }
   isSending=true;
   document.querySelectorAll('#sendAllBtn,#bannerSendBtn,#sendAllQueueBtn').forEach(btn=>btn.disabled=true);
   try {
@@ -269,20 +269,42 @@ function goToView(view){
 async function refreshEmailStatus(){
   const title = document.getElementById('emailStatusTitle');
   const copy = document.getElementById('emailStatusCopy');
+  const button = document.getElementById('checkEmailStatusBtn');
   if (!title || !copy) return;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  title.textContent = 'Checking live email setup…';
+  copy.textContent = 'Confirmly is checking your Vercel email configuration.';
+  if (button) button.disabled = true;
   try {
-    const response = await fetch('/api/send-reminder', { headers: { 'Accept': 'application/json' } });
-    const result = await response.json().catch(() => ({}));
-    if (response.ok && result.configured) {
+    const response = await fetch('/api/send-reminder', {
+      headers: { 'Accept': 'application/json', 'Cache-Control': 'no-cache' },
+      cache: 'no-store',
+      signal: controller.signal
+    });
+    const raw = await response.text();
+    let result = {};
+    try { result = raw ? JSON.parse(raw) : {}; } catch { result = {}; }
+    if (response.ok && result.configured === true) {
       title.textContent = 'Live email is configured';
-      copy.textContent = result.testMode ? 'Test mode is on: email can only be sent to your configured test address.' : 'Email reminders can now be sent from this project.';
+      copy.textContent = result.testMode
+        ? 'Test mode is on: email can only be sent to your configured test address.'
+        : 'Email reminders can now be sent from this project.';
+    } else if (response.status === 404) {
+      title.textContent = 'Email status unavailable';
+      copy.textContent = 'The email API route was not found. Upload the api folder, then redeploy on Vercel.';
     } else {
       title.textContent = 'Email needs setup';
       copy.textContent = result.error || 'Add RESEND_API_KEY and RESEND_FROM_EMAIL in Vercel, then redeploy.';
     }
-  } catch {
-    title.textContent = 'Email status unavailable';
-    copy.textContent = 'Check that this app is deployed on Vercel, then refresh.';
+  } catch (error) {
+    title.textContent = error?.name === 'AbortError' ? 'Email status timed out' : 'Email status unavailable';
+    copy.textContent = error?.name === 'AbortError'
+      ? 'The check took too long. Confirm the Vercel deployment is live, then try again.'
+      : 'Confirmly could not reach the email status endpoint. Check your connection and deployment, then try again.';
+  } finally {
+    clearTimeout(timeout);
+    if (button) button.disabled = false;
   }
 }
 
@@ -293,7 +315,7 @@ function bind(){
     document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===view));
     const titles={dashboard:'Your appointment control center',appointments:'Your bookings',messages:'Send reminders',settings:'Settings'};
     const eyebrows={dashboard:'YOUR DAILY WORKFLOW',appointments:'BOOKINGS',messages:'REMINDERS',settings:'CONFIRMLY WORKSPACE'};
-    document.getElementById('pageTitle').textContent=titles[view]; document.getElementById('pageEyebrow').textContent=eyebrows[view]; document.getElementById('sidebar').classList.remove('open'); setMobileView(view); haptic();
+    document.getElementById('pageTitle').textContent=titles[view]; document.getElementById('pageEyebrow').textContent=eyebrows[view]; document.getElementById('sidebar').classList.remove('open'); setMobileView(view); if(view==='settings') void refreshEmailStatus(); haptic();
   }));
   document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>goToView(b.dataset.go)));
   document.getElementById('newAppointmentBtn').addEventListener('click',()=>{document.querySelector('[name="date"]').value=todayISO();document.querySelector('[name="value"]').value=state.settings.defaultValue;document.querySelector('[name="preferredChannel"]').value='auto';openModal('appointmentModal')});
@@ -301,9 +323,15 @@ function bind(){
   document.getElementById('appointmentForm').addEventListener('submit',addAppointment);
   document.getElementById('statusFilter').addEventListener('change',updateAppointmentsTable);
   document.getElementById('searchInput').addEventListener('input',updateAppointmentsTable);
-  document.getElementById('sendAllBtn').addEventListener('click',()=>{void sendAll();});
-  document.getElementById('bannerSendBtn').addEventListener('click',()=>{void sendAll();});
-  document.getElementById('sendAllQueueBtn').addEventListener('click',()=>{void sendAll();});
+  document.getElementById('sendAllBtn').addEventListener('click',(event)=>{ event.preventDefault(); void sendAll(); });
+  document.getElementById('bannerSendBtn').addEventListener('click',(event)=>{ event.preventDefault(); goToView('messages'); });
+  document.getElementById('sendAllQueueBtn').addEventListener('click',(event)=>{ event.preventDefault(); void sendAll(); });
+  document.getElementById('refreshAppointmentsBtn')?.addEventListener('click',(event)=>{
+    event.preventDefault();
+    updateAppointmentsTable();
+    showToast('Appointments refreshed.');
+  });
+  document.getElementById('checkEmailStatusBtn')?.addEventListener('click',(event)=>{ event.preventDefault(); void refreshEmailStatus(); });
   document.getElementById('seedBtn').addEventListener('click',()=>{state=structuredClone(demo);save();render();showToast('Demo bookings restored.');});
   document.getElementById('upgradeBtn').addEventListener('click',()=>showToast('Upgrade checkout would open here.'));
   document.getElementById('mobileMenu').addEventListener('click',()=>document.getElementById('sidebar').classList.toggle('open'));
@@ -375,14 +403,6 @@ document.getElementById('mobileAddBtn')?.addEventListener('click',()=>{
 
 bind();
 render();
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {
-      // The app remains usable online if the browser blocks service workers.
-    });
-  });
-}
-
 void refreshEmailStatus();
 if(!onboarding.completed){ renderOnboarding(); openModal('onboardingModal'); }
 

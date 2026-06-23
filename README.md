@@ -28,3 +28,10 @@ Never put a Resend key in `app.js`, `index.html`, or GitHub. The API key belongs
 
 - `api/send-reminder.js` — Vercel serverless endpoint; the key stays server-side
 - `.env.example` — names of required variables only, with no secrets
+
+
+## Bugfix v3
+- Reminder CTAs never open the add-booking modal.
+- Send-all with an empty queue shows a toast.
+- Appointment refresh is functional and preserves stored bookings/filters.
+- Email setup status has timeout, error states, and Check again.
