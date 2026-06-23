@@ -28,3 +28,5 @@ npx serve .
 - Stripe subscriptions and deposits
 - Auth (Clerk or Supabase Auth)
 - Team roles and analytics
+
+Dedsec
