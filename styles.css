@@ -773,3 +773,34 @@ button{touch-action:manipulation}
     padding-top:0;
   }
 }
+
+/* v34: cleaner collapsed sidebar - icon only brand, higher reopen button */
+.app-shell.sidebar-collapsed .brand{
+  padding:0 0 18px;
+  justify-content:center;
+  align-items:center;
+}
+.app-shell.sidebar-collapsed .brand-lockup{
+  justify-content:center;
+  gap:0;
+}
+.app-shell.sidebar-collapsed .brand-text{
+  display:none !important;
+}
+.app-shell.sidebar-collapsed .brand-mark{
+  width:28px;
+  height:28px;
+  min-width:28px;
+  min-height:28px;
+  border-radius:9px;
+  font-size:17px;
+}
+.app-shell.sidebar-collapsed .sidebar-toggle-btn{
+  bottom:152px;
+}
+
+@media(max-width:760px){
+  .app-shell.sidebar-collapsed .brand-text{
+    display:none !important;
+  }
+}
