@@ -1,4 +1,4 @@
-const CACHE = 'confirmly-reminder-top-action-cleanup-v31';
+const CACHE = 'confirmly-start-empty-v32';
 const APP_SHELL = [
   './',
   './index.html',

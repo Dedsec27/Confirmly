@@ -96,3 +96,10 @@ This is still a prototype plan selector. Selecting Starter or Pro does not charg
 - Removed the duplicate top "Send all ready" button from Reminder Queue.
 - Kept the in-page Reminder Queue action as the single send-all control.
 - Updated the PWA cache version.
+
+
+## v32
+- New workspaces now start with zero bookings.
+- Removes only the old built-in sample bookings (Sofia, Nikos, Maria, Eleni, Iris, Dimitris, and Anna) once.
+- User-created bookings are preserved.
+- Updated PWA cache version.

@@ -13,16 +13,11 @@ function todayISO() { return localISODate(); }
 function shiftDate(days) { const d = new Date(); d.setDate(d.getDate() + days); return localISODate(d); }
 const demo = {
   settings:{businessName:'Atlas Studio',channel:'Email',availableChannels:['WhatsApp','SMS','Email'],defaultValue:60,theme:'light',sidebarCollapsed:false,reminderFlow:{first:{enabled:true,name:'First reminder',amount:48,unit:'hours'},followUp:{enabled:true,name:'Follow-up reminder',amount:4,unit:'hours'},recovery:{enabled:true,name:'Missed-booking recovery'}},message48:'Hi {first_name}, just a quick reminder about your {service} appointment on {date} at {time}. Tap below to confirm or reschedule.',message4:'Hi {first_name}, we’re looking forward to seeing you at {time} today. Please confirm your appointment.'},
-  appointments:[
-    {id:'a1',client:'Sofia Petrou',contact:'+30 694 111 2233',service:'Colour + cut',date:todayISO(),time:'10:30',value:85,status:'confirmed',notes:'Prefers subtle warm tones.',reminderSent:true},
-    {id:'a2',client:'Nikos Vassiliou',contact:'+30 697 345 6655',service:'Beard trim',date:todayISO(),time:'12:15',value:30,status:'waiting',notes:'',reminderSent:false},
-    {id:'a3',client:'Maria Georgiou',contact:'+30 699 877 2011',service:'Full styling',date:todayISO(),time:'15:00',value:70,status:'waiting',notes:'New client.',reminderSent:false},
-    {id:'a4',client:'Eleni Markou',contact:'+30 693 221 8811',service:'Haircut',date:todayISO(),time:'17:30',value:45,status:'waiting',notes:'',reminderSent:false},
-    {id:'a5',client:'Iris Kosta',contact:'iris@example.com',service:'Bridal trial',date:shiftDate(-1),time:'11:00',value:130,status:'rescheduled',notes:'Moved to Friday.',reminderSent:true},
-    {id:'a6',client:'Dimitris Aris',contact:'+30 698 777 3333',service:'Haircut',date:shiftDate(-2),time:'14:00',value:40,status:'no-show',notes:'Follow-up recovery sent.',reminderSent:true},
-    {id:'a7',client:'Anna Papas',contact:'+30 695 010 2323',service:'Colour refresh',date:shiftDate(-3),time:'16:30',value:75,status:'confirmed',notes:'',reminderSent:true}
-  ]
+  appointments:[]
 };
+
+// IDs used only by the original sample appointments. Existing real bookings use generated IDs.
+const builtInSampleBookingIds = new Set(['a1','a2','a3','a4','a5','a6','a7']);
 
 let state = load();
 let onboarding = loadOnboarding();
@@ -100,23 +95,29 @@ function normaliseState(data){
     next.settings.channel = next.settings.availableChannels.includes('Email') ? 'Email' : next.settings.channel;
     next.settings.defaultChannelMigrationV15 = true;
   }
+  // v32: start every workspace empty. Remove only Confirmly's old built-in examples once;
+  // never remove bookings the user created themselves.
+  if(!next.settings.sampleBookingsRemovedV32){
+    next.appointments=(next.appointments||[]).filter(a=>!builtInSampleBookingIds.has(a.id));
+    next.settings.sampleBookingsRemovedV32=true;
+  }
   next.appointments=(next.appointments||[]).map(a=>({preferredChannel:'auto', selectedReminderChannel:null, reminderChannel:null, reminderHistory:[], reminderSkipped:false, ...a}));
   return next;
 }
 function load(){
   try {
-    // Preserve an intentionally empty booking list. Only seed demo data when no saved state exists at all.
     const ownState = localStorage.getItem(storageKey);
     const legacyState = ownState === null
       ? legacyStorageKeys.map(key => localStorage.getItem(key)).find(value => value !== null)
       : null;
     const raw = ownState !== null ? ownState : legacyState;
+    // A brand-new workspace intentionally starts with no bookings.
     const loaded = raw !== null ? normaliseState(JSON.parse(raw)) : normaliseState(structuredClone(demo));
-    // One-time migration: keep data from prior builds, including an empty appointments array.
-    if (ownState === null && raw !== null) localStorage.setItem(storageKey, JSON.stringify(loaded));
+    // Persist the first-run empty state and one-time removal of legacy sample bookings.
+    localStorage.setItem(storageKey, JSON.stringify(loaded));
     return loaded;
   } catch {
-    // Do not overwrite existing browser data if it cannot be read. Fall back only for this session.
+    // Do not repopulate examples after a storage error.
     return normaliseState(structuredClone(demo));
   }
 }
