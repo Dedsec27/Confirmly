@@ -1,4 +1,4 @@
-const CACHE = 'confirmly-monochrome-dark-v22';
+const CACHE = 'confirmly-action-modal-fix-v23';
 const APP_SHELL = [
   './',
   './index.html',

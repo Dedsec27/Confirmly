@@ -39,3 +39,9 @@ This is still a prototype plan selector. Selecting Starter or Pro does not charg
 - Refined dark mode into a monochrome black-and-white theme.
 - Removed green accent styling while dark mode is active.
 - Updated the confirmation ring to render in white/gray in dark mode.
+
+
+## v23
+- Fixed booking action modal buttons by attaching direct click handlers every time the modal is opened.
+- Edit, confirm, reschedule, no-show, re-queue, cancel, and delete now work from View booking.
+- Updated PWA cache so the fix reaches installed apps.

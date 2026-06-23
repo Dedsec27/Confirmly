@@ -368,7 +368,48 @@ function openActions(id){
   const statusActions = a.status==='waiting'
     ? `<button type="button" class="action-option" data-update="confirmed">✓ Client confirmed</button><button type="button" class="action-option" data-update="rescheduled">↗ Client rescheduled</button><button type="button" class="action-option danger" data-update="no-show">! Client did not show up</button><button type="button" class="action-option" data-requeue="${a.id}">↻ Re-queue reminder</button><button type="button" class="action-option" data-update="cancelled">× Cancel booking</button>`
     : `<button type="button" class="action-option" data-update="waiting">↺ Move back to waiting</button>`;
-  document.getElementById('actionContent').innerHTML=`<div class="message-copy"><strong>${escapeHtml(a.service)}</strong><br>${prettyDate(a.date)} at ${a.time} · ${money(a.value)}</div><p style="font-size:12px;color:#6f7a74;margin:0 0 12px">Update this booking, its status, or remove it.</p><div class="action-list"><button type="button" class="action-option" data-edit="${a.id}">✎ Edit booking</button>${statusActions}<button type="button" class="action-option danger" data-delete="${a.id}">Delete booking</button></div>`;
+  const content=document.getElementById('actionContent');
+  content.innerHTML=`<div class="message-copy"><strong>${escapeHtml(a.service)}</strong><br>${prettyDate(a.date)} at ${a.time} · ${money(a.value)}</div><p style="font-size:12px;color:#6f7a74;margin:0 0 12px">Update this booking, its status, or remove it.</p><div class="action-list"><button type="button" class="action-option" data-edit="${a.id}">✎ Edit booking</button>${statusActions}<button type="button" class="action-option danger" data-delete="${a.id}">Delete booking</button></div>`;
+
+  // Bind modal actions directly after each render. This avoids stale/global delegated listeners
+  // when the queue card and modal are recreated on desktop or mobile.
+  content.querySelectorAll('[data-edit]').forEach(button=>{
+    button.addEventListener('click', event=>{
+      event.preventDefault();
+      event.stopPropagation();
+      openEditAppointment(button.dataset.edit);
+    });
+  });
+  content.querySelectorAll('[data-update]').forEach(button=>{
+    button.addEventListener('click', event=>{
+      event.preventDefault();
+      event.stopPropagation();
+      updateStatus(button.dataset.update);
+    });
+  });
+  content.querySelectorAll('[data-requeue]').forEach(button=>{
+    button.addEventListener('click', event=>{
+      event.preventDefault();
+      event.stopPropagation();
+      const booking=state.appointments.find(x=>x.id===button.dataset.requeue);
+      if(!booking) return;
+      booking.reminderSent=false;
+      booking.reminderSkipped=false;
+      booking.lastDeliveryError='';
+      save();
+      closeModal('actionModal');
+      render();
+      showToast('Reminder added back to the queue.');
+      haptic('success');
+    });
+  });
+  content.querySelectorAll('[data-delete]').forEach(button=>{
+    button.addEventListener('click', event=>{
+      event.preventDefault();
+      event.stopPropagation();
+      requestDeleteAppointment(button.dataset.delete);
+    });
+  });
   openModal('actionModal');
 }
 function updateStatus(status){
@@ -710,10 +751,7 @@ function bind(){
     const skip=e.target.closest('[data-skip]'); if(skip){const a=state.appointments.find(x=>x.id===skip.dataset.skip);if(a){a.reminderSkipped=true;save();render();showToast('Reminder skipped. You can re-queue it from the booking menu.');} return;}
     const requeue=e.target.closest('[data-requeue]'); if(requeue){const a=state.appointments.find(x=>x.id===requeue.dataset.requeue); if(a){a.reminderSent=false; a.reminderSkipped=false; save(); closeModal('actionModal'); render(); showToast('Reminder added back to the queue.');} return;}
     const update=e.target.closest('[data-update]'); if(update){updateStatus(update.dataset.update); return;}
-    // Row-level Edit/Delete buttons have explicit listeners bound after rendering.
-    // Keep this delegation only for action-modal controls outside the table.
-    const edit=e.target.closest('#actionModal [data-edit]'); if(edit){openEditAppointment(edit.dataset.edit); return;}
-    const del=e.target.closest('#actionModal [data-delete]'); if(del){requestDeleteAppointment(del.dataset.delete); return;}
+    // Action-modal buttons are bound directly whenever the modal opens.
   });
   document.querySelectorAll('.modal-backdrop').forEach(m=>m.addEventListener('click',e=>{if(e.target===m && m.id!=='onboardingModal')closeModal(m.id)}));
 }
