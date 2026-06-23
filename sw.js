@@ -1,4 +1,4 @@
-const CACHE = 'confirmly-sidebar-toggle-v29';
+const CACHE = 'confirmly-sidebar-clean-v30';
 const APP_SHELL = [
   './',
   './index.html',

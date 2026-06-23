@@ -83,3 +83,10 @@ This is still a prototype plan selector. Selecting Starter or Pro does not charg
 - Added a desktop sidebar collapse/expand button inside the sidebar brand area.
 - Sidebar state is saved locally and restored on refresh.
 - Updated the service worker cache version.
+
+
+## v30
+- Cleaned up the collapsed sidebar layout.
+- Sidebar now shows icon-only navigation with hover tooltips.
+- Hides the bulky trial card when collapsed and keeps a cleaner bottom account area.
+- Improved spacing, centering, and collapse button styling.
