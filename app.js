@@ -24,6 +24,7 @@ let state = load();
 let onboarding = loadOnboarding();
 let currentQueue = 'due';
 let activeAppointmentId = null;
+let editingAppointmentId = null;
 
 function normaliseState(data){
   const next=data||structuredClone(demo);
@@ -194,7 +195,7 @@ function handleOnboarding(action){
   }
   if(action==='add-booking'){
     onboarding.bookingAdded=true; onboarding.completed=true; saveOnboarding(); closeModal('onboardingModal');
-    document.querySelector('[name="date"]').value=todayISO(); document.querySelector('[name="value"]').value=state.settings.defaultValue; openModal('appointmentModal');
+    prepareAppointmentForm(); openModal('appointmentModal');
   }
 }
 
@@ -202,7 +203,10 @@ function openActions(id){
   const a=state.appointments.find(x=>x.id===id); if(!a)return;
   activeAppointmentId=id;
   document.getElementById('actionTitle').textContent=a.client;
-  document.getElementById('actionContent').innerHTML=`<div class="message-copy"><strong>${escapeHtml(a.service)}</strong><br>${prettyDate(a.date)} at ${a.time} · ${money(a.value)}</div><p style="font-size:12px;color:#6f7a74;margin:0 0 12px">Choose what happened with this booking.</p><div class="action-list">${a.status==='waiting'?'<button type="button" class="action-option" data-update="confirmed">✓ Client confirmed</button><button type="button" class="action-option" data-update="rescheduled">↗ Client rescheduled</button><button type="button" class="action-option danger" data-update="no-show">! Client did not show up</button><button type="button" class="action-option" data-requeue="${a.id}">↻ Re-queue reminder</button><button type="button" class="action-option" data-update="cancelled">× Cancel booking</button>':`<button type="button" class="action-option" data-update="waiting">↺ Move back to waiting</button><button type="button" class="action-option danger" data-delete="${a.id}">Delete booking</button>`}</div>`;
+  const statusActions = a.status==='waiting'
+    ? `<button type="button" class="action-option" data-update="confirmed">✓ Client confirmed</button><button type="button" class="action-option" data-update="rescheduled">↗ Client rescheduled</button><button type="button" class="action-option danger" data-update="no-show">! Client did not show up</button><button type="button" class="action-option" data-requeue="${a.id}">↻ Re-queue reminder</button><button type="button" class="action-option" data-update="cancelled">× Cancel booking</button>`
+    : `<button type="button" class="action-option" data-update="waiting">↺ Move back to waiting</button>`;
+  document.getElementById('actionContent').innerHTML=`<div class="message-copy"><strong>${escapeHtml(a.service)}</strong><br>${prettyDate(a.date)} at ${a.time} · ${money(a.value)}</div><p style="font-size:12px;color:#6f7a74;margin:0 0 12px">Update this booking, its status, or remove it.</p><div class="action-list"><button type="button" class="action-option" data-edit="${a.id}">✎ Edit booking</button>${statusActions}<button type="button" class="action-option danger" data-delete="${a.id}">Delete booking</button></div>`;
   openModal('actionModal');
 }
 function updateStatus(status){
@@ -257,10 +261,69 @@ async function sendAll(){
     document.querySelectorAll('#sendAllBtn,#bannerSendBtn,#sendAllQueueBtn').forEach(btn=>btn.disabled=false);
   }
 }
+function prepareAppointmentForm(a=null){
+  const form=document.getElementById('appointmentForm');
+  const title=document.getElementById('modalTitle');
+  const eyebrow=document.getElementById('modalEyebrow');
+  const submit=document.getElementById('appointmentSubmitBtn');
+  editingAppointmentId=a?.id || null;
+  if(a){
+    title.textContent='Edit appointment';
+    eyebrow.textContent='BOOKING DETAILS';
+    submit.textContent='Save changes';
+    form.elements.client.value=a.client || '';
+    form.elements.contact.value=a.contact || '';
+    form.elements.service.value=a.service || '';
+    form.elements.value.value=Number(a.value || 0);
+    form.elements.date.value=a.date || todayISO();
+    form.elements.time.value=a.time || '';
+    form.elements.preferredChannel.value=a.preferredChannel || 'auto';
+    form.elements.notes.value=a.notes || '';
+  } else {
+    title.textContent='Add appointment';
+    eyebrow.textContent='NEW BOOKING';
+    submit.textContent='Create booking';
+    form.reset();
+    form.elements.date.value=todayISO();
+    form.elements.value.value=state.settings.defaultValue;
+    form.elements.preferredChannel.value='auto';
+  }
+}
+function openEditAppointment(id){
+  const appointment=state.appointments.find(x=>x.id===id);
+  if(!appointment) return;
+  closeModal('actionModal');
+  prepareAppointmentForm(appointment);
+  openModal('appointmentModal');
+}
+function deleteAppointment(id){
+  const appointment=state.appointments.find(x=>x.id===id);
+  if(!appointment) return;
+  if(!window.confirm(`Delete ${appointment.client}'s booking? This cannot be undone.`)) return;
+  state.appointments=state.appointments.filter(x=>x.id!==id);
+  save();
+  closeModal('actionModal');
+  render();
+  showToast('Booking deleted.');
+  haptic();
+}
 function addAppointment(e){
   e.preventDefault(); const fd=new FormData(e.target);
-  state.appointments.push({id:crypto.randomUUID(),client:fd.get('client').trim(),contact:fd.get('contact').trim(),service:fd.get('service').trim(),value:Number(fd.get('value')),date:fd.get('date'),time:fd.get('time'),notes:fd.get('notes').trim(),preferredChannel:fd.get('preferredChannel')||'auto',reminderChannel:null,reminderHistory:[],reminderSkipped:false,status:'waiting',reminderSent:false});
-  onboarding.bookingAdded=true; save(); saveOnboarding(); e.target.reset(); closeModal('appointmentModal'); render(); showToast('Booking added. It is now ready for a reminder.');
+  const changes={client:fd.get('client').trim(),contact:fd.get('contact').trim(),service:fd.get('service').trim(),value:Number(fd.get('value')),date:fd.get('date'),time:fd.get('time'),notes:fd.get('notes').trim(),preferredChannel:fd.get('preferredChannel')||'auto'};
+  if(editingAppointmentId){
+    const appointment=state.appointments.find(x=>x.id===editingAppointmentId);
+    if(!appointment) { showToast('This booking could not be found.'); return; }
+    Object.assign(appointment,changes);
+    save();
+    editingAppointmentId=null;
+    closeModal('appointmentModal');
+    render();
+    showToast('Booking changes saved.');
+    haptic('success');
+    return;
+  }
+  state.appointments.push({id:crypto.randomUUID(),...changes,reminderChannel:null,reminderHistory:[],reminderSkipped:false,status:'waiting',reminderSent:false});
+  onboarding.bookingAdded=true; save(); saveOnboarding(); editingAppointmentId=null; closeModal('appointmentModal'); render(); showToast('Booking added. It is now ready for a reminder.');
 }
 
 function goToView(view){
@@ -318,7 +381,7 @@ function bind(){
     document.getElementById('pageTitle').textContent=titles[view]; document.getElementById('pageEyebrow').textContent=eyebrows[view]; document.getElementById('sidebar').classList.remove('open'); setMobileView(view); if(view==='settings') void refreshEmailStatus(); haptic();
   }));
   document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>goToView(b.dataset.go)));
-  document.getElementById('newAppointmentBtn').addEventListener('click',()=>{document.querySelector('[name="date"]').value=todayISO();document.querySelector('[name="value"]').value=state.settings.defaultValue;document.querySelector('[name="preferredChannel"]').value='auto';openModal('appointmentModal')});
+  document.getElementById('newAppointmentBtn').addEventListener('click',()=>{prepareAppointmentForm();openModal('appointmentModal')});
   document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal(b.dataset.close)));
   document.getElementById('appointmentForm').addEventListener('submit',addAppointment);
   document.getElementById('statusFilter').addEventListener('change',updateAppointmentsTable);
@@ -355,7 +418,8 @@ function bind(){
     const skip=e.target.closest('[data-skip]'); if(skip){const a=state.appointments.find(x=>x.id===skip.dataset.skip);if(a){a.reminderSkipped=true;save();render();showToast('Reminder skipped. You can re-queue it from the booking menu.');} return;}
     const requeue=e.target.closest('[data-requeue]'); if(requeue){const a=state.appointments.find(x=>x.id===requeue.dataset.requeue); if(a){a.reminderSent=false; a.reminderSkipped=false; save(); closeModal('actionModal'); render(); showToast('Reminder added back to the queue.');} return;}
     const update=e.target.closest('[data-update]'); if(update){updateStatus(update.dataset.update); return;}
-    const del=e.target.closest('[data-delete]'); if(del){state.appointments=state.appointments.filter(x=>x.id!==del.dataset.delete);save();closeModal('actionModal');render();showToast('Booking deleted.');}
+    const edit=e.target.closest('[data-edit]'); if(edit){openEditAppointment(edit.dataset.edit); return;}
+    const del=e.target.closest('[data-delete]'); if(del){deleteAppointment(del.dataset.delete); return;}
   });
   document.querySelectorAll('.modal-backdrop').forEach(m=>m.addEventListener('click',e=>{if(e.target===m && m.id!=='onboardingModal')closeModal(m.id)}));
 }

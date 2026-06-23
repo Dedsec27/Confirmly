@@ -86,7 +86,7 @@
         <div class="settings-grid">
           <section class="panel setting-panel"><h3>Business details</h3><label>Business name<input id="businessName" value="Atlas Studio" autocomplete="organization" /></label><div class="setting-label">Reminder channels</div><div class="channel-options" id="availableChannels"><label class="channel-option"><input type="checkbox" value="WhatsApp" checked><span>◉</span><div><strong>WhatsApp</strong><small>Fastest confirmations</small></div></label><label class="channel-option"><input type="checkbox" value="SMS" checked><span>✦</span><div><strong>SMS</strong><small>Works without an app</small></div></label><label class="channel-option"><input type="checkbox" value="Email" checked><span>✉</span><div><strong>Email</strong><small>Best for longer details</small></div></label></div><label>Default channel for “Send all”<select id="channel"><option>WhatsApp</option><option>SMS</option><option>Email</option></select></label><label>Default appointment value (€)<input id="defaultValue" type="number" min="0" value="60" inputmode="decimal" /></label><button type="button" class="primary-btn" id="saveSettingsBtn">Save settings</button></section>
           <section class="panel setting-panel"><h3>Reminder copy</h3><label>48-hour reminder<textarea id="message48">Hi {first_name}, just a quick reminder about your {service} appointment on {date} at {time}. Tap below to confirm or reschedule.</textarea></label><label>4-hour reminder<textarea id="message4">Hi {first_name}, we’re looking forward to seeing you at {time} today. Please confirm your appointment.</textarea></label><button type="button" class="outline-btn" id="previewTemplateBtn">Preview message</button></section>
-          <section class="panel setting-panel"><h3>Live email delivery</h3><p class="setup-copy">Email reminders can be sent for real through Resend. Keep your API key in Vercel — never inside this app.</p><div class="live-status"><span class="live-dot"></span><div><strong id="emailStatusTitle">Checking live email setup…</strong><small id="emailStatusCopy">Checking this Vercel deployment.</small></div></div><p class="setup-note">WhatsApp and SMS are still demo-only in this build. Select Email on a booking and use your own email address to test live delivery.</p></section>
+          <section class="panel setting-panel"><h3>Live email delivery</h3><p class="setup-copy">Email reminders can be sent for real through Resend. Keep your API key in Vercel — never inside this app.</p><div class="live-status" aria-live="polite"><span class="live-dot"></span><div><strong id="emailStatusTitle">Checking live email setup…</strong><small id="emailStatusCopy">Confirmly is checking your Vercel email configuration.</small></div></div><button type="button" class="outline-btn" id="checkEmailStatusBtn">Check again</button><p class="setup-note">WhatsApp and SMS are still demo-only in this build. Select Email on a booking and use your own email address to test live delivery.</p></section>
         </div>
       </section>
     </main>
@@ -102,7 +102,7 @@
 
   <div class="modal-backdrop hidden" id="appointmentModal">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-      <div class="modal-header"><div><p class="eyebrow">NEW BOOKING</p><h2 id="modalTitle">Add appointment</h2></div><button type="button" class="close-btn" data-close="appointmentModal">×</button></div>
+      <div class="modal-header"><div><p class="eyebrow" id="modalEyebrow">NEW BOOKING</p><h2 id="modalTitle">Add appointment</h2></div><button type="button" class="close-btn" data-close="appointmentModal">×</button></div>
       <form id="appointmentForm" class="form-grid">
         <label>Client name<input name="client" required placeholder="e.g. Sofia Petrou" /></label>
         <label>Phone or email<input name="contact" required placeholder="e.g. +30 69..." /></label>
@@ -112,7 +112,7 @@
         <label>Time<input name="time" type="time" required /></label>
         <label class="full-width">Preferred reminder channel<select name="preferredChannel" id="appointmentChannel"><option value="auto">Use business default</option><option value="WhatsApp">WhatsApp</option><option value="SMS">SMS</option><option value="Email">Email</option></select></label>
         <label class="full-width">Notes<textarea name="notes" placeholder="Optional internal notes"></textarea></label>
-        <div class="modal-actions full-width"><button type="button" class="outline-btn" data-close="appointmentModal">Cancel</button><button class="primary-btn" type="submit">Create booking</button></div>
+        <div class="modal-actions full-width"><button type="button" class="outline-btn" data-close="appointmentModal">Cancel</button><button class="primary-btn" id="appointmentSubmitBtn" type="submit">Create booking</button></div>
       </form>
     </div>
   </div>

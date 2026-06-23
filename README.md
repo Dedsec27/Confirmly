@@ -35,3 +35,9 @@ Never put a Resend key in `app.js`, `index.html`, or GitHub. The API key belongs
 - Send-all with an empty queue shows a toast.
 - Appointment refresh is functional and preserves stored bookings/filters.
 - Email setup status has timeout, error states, and Check again.
+
+## v4 booking management fix
+- Added Edit booking from every booking action menu.
+- Added Delete booking from every booking action menu, with a confirmation prompt.
+- Reused the booking form for edits and preserves reminder history/status.
+- Service worker cache bumped to v4.
