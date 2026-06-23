@@ -66,3 +66,19 @@ button{touch-action:manipulation}
 @media(max-width:760px){.table-scroll td.booking-row-actions{position:absolute;right:9px;top:9px;width:auto;display:flex;gap:5px}.table-scroll td.booking-row-actions .row-action-btn{min-height:36px;padding:7px 9px;font-size:11px}.table-scroll tr{padding-right:122px}}
 
 .email-warning{margin-top:10px;padding:9px 10px;border-radius:10px;background:#fff4d7;color:#735b16;font-size:12px;line-height:1.4}.email-warning.error{background:#ffe6e6;color:#9f3030}.email-warning button{border:0;background:transparent;color:inherit;text-decoration:underline;font:inherit;font-weight:700;cursor:pointer;padding:0}
+
+
+/* v11: In-app delete confirmation */
+.delete-modal{max-width:430px;text-align:center;padding:28px 26px 24px}
+.delete-icon{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;margin:0 auto 13px;background:#fff0f0;color:#b94747;font:700 24px 'Space Grotesk';border:1px solid #f1cccc}
+.delete-modal h2{margin:3px 0 8px;font-size:24px;color:#213229}
+.delete-copy{margin:7px 0;color:#536158;font-size:14px;line-height:1.45}
+.delete-copy strong{color:#22352a}
+.delete-details{margin:10px 0 16px;padding:10px 12px;border-radius:11px;background:#f4f7f4;color:#69766e;font-size:12px;line-height:1.45}
+.delete-modal-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px}
+.delete-modal-actions button{min-height:46px;border-radius:12px;font-weight:700}
+.danger-confirm-btn{border:1px solid #b94747;background:#b94747;color:#fff;cursor:pointer;font:700 14px 'DM Sans'}
+.danger-confirm-btn:hover{background:#9e3737}.danger-confirm-btn:focus-visible,.delete-modal .outline-btn:focus-visible{outline:3px solid rgba(28,118,80,.28);outline-offset:2px}
+@media(max-width:760px){.delete-modal{padding:24px 18px calc(18px + env(safe-area-inset-bottom));text-align:left}.delete-modal .delete-icon{margin:0 0 13px}.delete-modal-actions{grid-template-columns:1fr 1fr}.delete-modal-actions button{font-size:13px}}
+
+.delivery-note{display:block;margin:8px 0 10px;font-size:11px;line-height:1.45;color:#7a6940;background:#fff8e7;border:1px solid #f1dfae;border-radius:9px;padding:8px 10px}.message-actions .send-btn{min-height:36px}.channel-send[aria-pressed="true"]{box-shadow:0 0 0 2px rgba(28,118,80,.14)}

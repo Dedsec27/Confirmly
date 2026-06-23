@@ -1,4 +1,4 @@
-const CACHE = 'confirmly-email-delivery-v10';
+const CACHE = 'confirmly-reminder-controls-v12';
 const APP_SHELL = [
   './',
   './index.html',

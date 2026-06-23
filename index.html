@@ -118,6 +118,20 @@
   </div>
 
   <div class="modal-backdrop hidden" id="actionModal"><div class="modal compact"><div class="modal-header"><div><p class="eyebrow">APPOINTMENT ACTION</p><h2 id="actionTitle">Update appointment</h2></div><button type="button" class="close-btn" data-close="actionModal">×</button></div><div id="actionContent"></div></div></div>
+<div class="modal-backdrop hidden" id="deleteModal">
+  <div class="modal compact delete-modal" role="alertdialog" aria-modal="true" aria-labelledby="deleteModalTitle" aria-describedby="deleteBookingDetails">
+    <div class="delete-icon" aria-hidden="true">!</div>
+    <p class="eyebrow">DELETE BOOKING</p>
+    <h2 id="deleteModalTitle">Delete this booking?</h2>
+    <p class="delete-copy"><strong id="deleteBookingName"></strong></p>
+    <p class="delete-details" id="deleteBookingDetails"></p>
+    <p class="delete-copy">This cannot be undone.</p>
+    <div class="delete-modal-actions">
+      <button type="button" class="outline-btn" id="cancelDeleteBtn">Keep booking</button>
+      <button type="button" class="danger-confirm-btn" id="confirmDeleteBtn">Delete booking</button>
+    </div>
+  </div>
+</div>
   <div class="toast" id="toast"></div>
   <script src="app.js"></script>
 </body>

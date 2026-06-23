@@ -52,7 +52,9 @@ module.exports = async (req, res) => {
     return res.status(429).json({ error: 'Too many send attempts. Wait a minute and try again.' });
   }
 
-  const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+  let body = {};
+  try { body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {}); }
+  catch { return res.status(400).json({ error: 'Invalid JSON request.' }); }
   const { to, clientName, service, appointmentDate, appointmentTime, businessName, message } = body;
 
   if (!isEmail(to)) return res.status(400).json({ error: 'Enter a valid recipient email address.' });
@@ -61,9 +63,9 @@ module.exports = async (req, res) => {
   }
 
   const allowedRecipient = String(process.env.CONFIRMLY_TEST_RECIPIENT || '').trim().toLowerCase();
-  if (allowedRecipient && String(to).trim().toLowerCase() !== allowedRecipient) {
-    return res.status(403).json({ error: 'Test mode is on: reminders can only be sent to the email in CONFIRMLY_TEST_RECIPIENT.' });
-  }
+  // Test mode intentionally redirects every test booking to the configured owner inbox.
+  // This lets the business test the full flow without sending messages to real clients.
+  const recipient = allowedRecipient || String(to).trim();
 
   const from = process.env.RESEND_FROM_EMAIL;
   const subject = `${businessName}: appointment reminder for ${appointmentDate} at ${appointmentTime}`;
@@ -85,7 +87,7 @@ module.exports = async (req, res) => {
         Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ from, to: [String(to).trim()], subject, html }),
+      body: JSON.stringify({ from, to: [recipient], subject, html }),
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
@@ -93,7 +95,7 @@ module.exports = async (req, res) => {
       const providerError = data.message || data.error?.message || data.error || data.name || 'Resend could not send this email.';
       return res.status(response.status).json({ error: String(providerError) });
     }
-    return res.status(200).json({ ok: true, id: data.id });
+    return res.status(200).json({ ok: true, id: data.id, testMode: Boolean(allowedRecipient) });
   } catch (error) {
     console.error('Email delivery error', error);
     return res.status(500).json({ error: 'Could not reach the email service. Try again.' });

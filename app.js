@@ -26,6 +26,7 @@ let onboarding = loadOnboarding();
 let currentQueue = 'due';
 let activeAppointmentId = null;
 let editingAppointmentId = null;
+let pendingDeleteAppointmentId = null;
 
 function normaliseState(data){
   const next=data||structuredClone(demo);
@@ -39,7 +40,7 @@ function normaliseState(data){
     next.settings.channel = next.settings.availableChannels.includes('Email') ? 'Email' : next.settings.channel;
     next.settings.defaultChannelMigrationV9 = true;
   }
-  next.appointments=(next.appointments||[]).map(a=>({preferredChannel:'auto', reminderChannel:null, reminderHistory:[], reminderSkipped:false, ...a}));
+  next.appointments=(next.appointments||[]).map(a=>({preferredChannel:'auto', selectedReminderChannel:null, reminderChannel:null, reminderHistory:[], reminderSkipped:false, ...a}));
   return next;
 }
 function load(){
@@ -136,7 +137,7 @@ function bindBookingRowActions(){
       event.stopPropagation();
       const id=button.dataset.delete;
       if(!id){ showToast('This booking could not be deleted.'); return; }
-      deleteAppointment(id);
+      requestDeleteAppointment(id);
     };
   });
 }
@@ -200,20 +201,27 @@ function channelsFor(a){
   return [preferred, ...enabled.filter(ch => ch !== preferred)];
 }
 function channelActionLabel(channel){ return channel==='WhatsApp'?'WhatsApp':channel==='SMS'?'SMS':'Email'; }
+function selectedQueueChannel(a){
+  const enabled = state.settings.availableChannels || ['WhatsApp','SMS','Email'];
+  const remembered = a.selectedReminderChannel;
+  if(remembered && enabled.includes(remembered)) return remembered;
+  return a.reminderChannel || resolvedChannel(a);
+}
 function updateMessages(){
-  const due=sortedAppointments().filter(a=>a.status==='waiting'&&!a.reminderSent);
+  const due=sortedAppointments().filter(a=>a.status==='waiting'&&!a.reminderSent&&!a.reminderSkipped);
   const sent=sortedAppointments().filter(a=>a.reminderSent);
   document.getElementById('dueCount').textContent=due.length;
   document.getElementById('sentCount').textContent=sent.length;
   const source=currentQueue==='due'?due:sent;
   const holder=document.getElementById('messageQueue');
   holder.innerHTML=source.length?source.map(a=>{
-    const channel=a.reminderChannel || resolvedChannel(a);
-    const choices=channelsFor(a).map(ch=>`<button type="button" class="channel-send ${ch===channel?'primary-channel':''}" data-send-channel="${a.id}|${ch}">${channelActionLabel(ch)}</button>`).join('');
+    const channel=selectedQueueChannel(a);
+    const choices=channelsFor(a).map(ch=>`<button type="button" class="channel-send ${ch===channel?'primary-channel':''}" aria-pressed="${ch===channel?'true':'false'}" data-select-channel="${a.id}|${ch}">${channelActionLabel(ch)}</button>`).join('');
     const emailWarning=!a.reminderSent && channel==='Email' && !isEmailAddress(a.contact)
       ? `<div class="email-warning">Email is selected, but this booking has no valid email address. <button type="button" data-edit="${a.id}">Edit booking</button></div>` : '';
     const failure=a.lastDeliveryError ? `<div class="email-warning error">Last delivery failed: ${escapeHtml(a.lastDeliveryError)} <button type="button" data-edit="${a.id}">Edit booking</button></div>` : '';
-    return `<article class="message-card"><div class="message-card-top"><div><strong>${escapeHtml(a.client)}</strong><div class="message-meta">${escapeHtml(a.service)} · ${prettyDate(a.date)} at ${a.time} ${a.reminderSent?`<span class="channel-badge">Sent via ${escapeHtml(channel)}</span>`:''}</div></div><span class="status ${a.reminderSent?'confirmed':'waiting'}">${a.reminderSent?'Sent':'Ready'}</span></div><div class="message-copy">${escapeHtml(messageText(a))}</div>${emailWarning}${failure}${!a.reminderSent?`<div class="channel-picker"><span>Send via</span>${choices}</div><div class="message-actions"><button type="button" class="small-btn skip-btn" data-skip="${a.id}">Skip for now</button></div>`:`<div class="message-actions"><button type="button" class="small-btn skip-btn" data-actions="${a.id}">View booking</button></div>`}</article>`;
+    const deliveryNote=!a.reminderSent && channel!=='Email' ? `<span class="delivery-note">${channel} is currently demo-only. Confirmly will record the reminder, but no real ${channel} message is sent yet.</span>` : '';
+    return `<article class="message-card"><div class="message-card-top"><div><strong>${escapeHtml(a.client)}</strong><div class="message-meta">${escapeHtml(a.service)} · ${prettyDate(a.date)} at ${a.time} ${a.reminderSent?`<span class="channel-badge">Sent via ${escapeHtml(a.reminderChannel || channel)}</span>`:''}</div></div><span class="status ${a.reminderSent?'confirmed':'waiting'}">${a.reminderSent?'Sent':'Ready'}</span></div><div class="message-copy">${escapeHtml(messageText(a))}</div>${emailWarning}${failure}${!a.reminderSent?`<div class="channel-picker"><span>Choose channel</span>${choices}</div>${deliveryNote}<div class="message-actions"><button type="button" class="small-btn send-btn" data-send-single="${a.id}">Send this reminder</button><button type="button" class="small-btn skip-btn" data-skip="${a.id}">Skip for now</button></div>`:`<div class="message-actions"><button type="button" class="small-btn skip-btn" data-actions="${a.id}">View booking</button></div>`}</article>`;
   }).join(''):`<div class="empty-state"><strong>${currentQueue==='due'?'No reminders ready to send':'No sent reminders yet'}</strong><span>${currentQueue==='due'?'Nice — everyone has been contacted.':'Send a reminder to see it here.'}</span></div>`;
   document.querySelectorAll('.queue-tab').forEach(btn=>btn.classList.toggle('active',btn.dataset.queue===currentQueue));
 }
@@ -274,20 +282,26 @@ function updateStatus(status){
   save(); closeModal('actionModal'); render(); showToast(`Booking marked ${statusLabel(status).toLowerCase()}.`); haptic('success');
 }
 let isSending = false;
-async function sendReminder(id, channel=state.settings.channel){
+async function sendReminder(id, channel){
   const a=state.appointments.find(x=>x.id===id); if(!a)return;
-  if(!(state.settings.availableChannels||[]).includes(channel)){ showToast(`${channel} is disabled in Settings.`); return; }
-  if(channel==='Email'){
+  const chosenChannel=channel || selectedQueueChannel(a) || state.settings.channel;
+  if(!(state.settings.availableChannels||[]).includes(chosenChannel)){ showToast(`${chosenChannel} is disabled in Settings.`); return; }
+  if(chosenChannel==='Email'){
     showToast(`Sending email to ${a.client}…`);
-    try { await deliverLiveEmail(a); a.lastDeliveryError=''; }
-    catch(error){ a.lastDeliveryError=error.message||'Email could not be sent.'; save(); render(); showToast(a.lastDeliveryError); haptic(); return; }
+    try {
+      const result=await deliverLiveEmail(a);
+      a.lastDeliveryError='';
+      a.lastDeliveryTestMode=Boolean(result?.testMode);
+    }
+    catch(error){ a.lastDeliveryError=error.message||'Email could not be sent.'; save(); updateMessages(); showToast(a.lastDeliveryError); haptic(); return; }
   }
   a.reminderSent=true;
   a.reminderSkipped=false;
-  a.reminderChannel=channel;
-  a.reminderHistory=[...(a.reminderHistory||[]),{channel,at:new Date().toISOString(),delivery:channel==='Email'?'live':'demo'}];
+  a.reminderChannel=chosenChannel;
+  a.selectedReminderChannel=chosenChannel;
+  a.reminderHistory=[...(a.reminderHistory||[]),{channel:chosenChannel,at:new Date().toISOString(),delivery:chosenChannel==='Email'?'live':'demo'}];
   onboarding.reminderSent=true; save(); saveOnboarding(); render();
-  showToast(channel==='Email' ? `Email reminder sent to ${a.client}.` : `${channel} is in demo mode — the reminder was recorded in Confirmly.`);
+  showToast(chosenChannel==='Email' ? (a.lastDeliveryTestMode ? `Test email sent to your configured test inbox.` : `Email reminder sent to ${a.client}.`) : `${chosenChannel} is in demo mode — the reminder was recorded in Confirmly.`);
   haptic('success');
 }
 async function sendAll(){
@@ -302,18 +316,19 @@ async function sendAll(){
     for(const a of due){
       const channel=resolvedChannel(a);
       if(channel==='Email'){
-        try { await deliverLiveEmail(a); liveEmails++; a.lastDeliveryError=''; }
+        try { const result=await deliverLiveEmail(a); liveEmails++; a.lastDeliveryError=''; a.lastDeliveryTestMode=Boolean(result?.testMode); }
         catch(error){ failed++; a.lastDeliveryError=error.message||'Email could not be sent.'; failures.push(a.lastDeliveryError); continue; }
       } else { demoChannels++; a.lastDeliveryError=''; }
       a.reminderSent=true;
       a.reminderSkipped=false;
       a.reminderChannel=channel;
+      a.selectedReminderChannel=channel;
       a.reminderHistory=[...(a.reminderHistory||[]),{channel,at:new Date().toISOString(),delivery:channel==='Email'?'live':'demo'}];
     }
     if(liveEmails||demoChannels||failed){ save(); render(); }
     if(liveEmails||demoChannels){ onboarding.reminderSent=true; saveOnboarding(); haptic('success'); }
     const parts=[];
-    if(liveEmails) parts.push(`${liveEmails} email${liveEmails===1?'':'s'} sent`);
+    if(liveEmails) parts.push(`${liveEmails} email${liveEmails===1?'':'s'} sent${due.some(a=>a.lastDeliveryTestMode)?' to your test inbox':''}`);
     if(demoChannels) parts.push(`${demoChannels} WhatsApp/SMS reminder${demoChannels===1?'':'s'} recorded in demo mode`);
     if(failed) parts.push(`${failed} email${failed===1?'':'s'} failed: ${failures[0]}`);
     showToast(parts.join(' · ')||'No reminders could be sent.');
@@ -365,18 +380,29 @@ function refreshBookingSurfaces(){
   updateQuickStart();
 }
 
-function deleteAppointment(id){
-  const appointment=state.appointments.find(x=>x.id===id);
+function requestDeleteAppointment(id){
+  const appointment=state.appointments.find(x=>String(x.id)===String(id));
   if(!appointment) { showToast('This booking could not be found.'); return; }
 
-  // Every status is deletable: waiting, confirmed, rescheduled, no-show, or cancelled.
-  if(!window.confirm(`Delete ${appointment.client}'s ${statusLabel(appointment.status).toLowerCase()} booking? This cannot be undone.`)) return;
+  pendingDeleteAppointmentId=appointment.id;
+  document.getElementById('deleteBookingName').textContent=appointment.client;
+  document.getElementById('deleteBookingDetails').textContent=`${statusLabel(appointment.status)} · ${appointment.service} · ${prettyDate(appointment.date)} at ${appointment.time}`;
+  openModal('deleteModal');
+  requestAnimationFrame(()=>document.getElementById('confirmDeleteBtn')?.focus());
+}
+
+function confirmDeleteAppointment(){
+  const id=pendingDeleteAppointmentId;
+  const appointment=state.appointments.find(x=>String(x.id)===String(id));
+  if(!appointment) { closeModal('deleteModal'); pendingDeleteAppointmentId=null; showToast('This booking could not be found.'); return; }
 
   const before=state.appointments.length;
   state.appointments=state.appointments.filter(x=>String(x.id)!==String(id));
   if(state.appointments.length===before){ showToast('This booking could not be deleted.'); return; }
 
   save();
+  pendingDeleteAppointmentId=null;
+  closeModal('deleteModal');
   closeModal('actionModal');
   refreshBookingSurfaces();
   showToast(`${appointment.client}'s booking deleted.`);
@@ -403,7 +429,7 @@ function addAppointment(e){
     haptic('success');
     return;
   }
-  state.appointments.push({id:crypto.randomUUID(),...changes,reminderChannel:null,reminderHistory:[],reminderSkipped:false,status:'waiting',reminderSent:false});
+  state.appointments.push({id:crypto.randomUUID(),...changes,selectedReminderChannel:null,reminderChannel:null,reminderHistory:[],reminderSkipped:false,status:'waiting',reminderSent:false});
   onboarding.bookingAdded=true; save(); saveOnboarding(); editingAppointmentId=null; closeModal('appointmentModal'); refreshBookingSurfaces(); showToast('Booking added. It is now ready for a reminder.');
 }
 
@@ -494,6 +520,9 @@ function bind(){
     render();
     showToast('App data refreshed.');
   });
+  document.getElementById('confirmDeleteBtn')?.addEventListener('click', confirmDeleteAppointment);
+  document.getElementById('cancelDeleteBtn')?.addEventListener('click',()=>{pendingDeleteAppointmentId=null; closeModal('deleteModal');});
+  document.getElementById('deleteModal')?.addEventListener('click',event=>{if(event.target===event.currentTarget){pendingDeleteAppointmentId=null; closeModal('deleteModal');}});
   document.getElementById('upgradeBtn').addEventListener('click',()=>showToast('Upgrade checkout would open here.'));
   document.getElementById('mobileMenu').addEventListener('click',()=>document.getElementById('sidebar').classList.toggle('open'));
   document.querySelectorAll('.queue-tab').forEach(b=>b.addEventListener('click',()=>{currentQueue=b.dataset.queue;updateMessages()}));
@@ -524,14 +553,24 @@ function bind(){
     const guide=e.target.closest('[data-onboarding]'); if(guide){handleOnboarding(guide.dataset.onboarding); return;}
     const actions=e.target.closest('[data-actions]'); if(actions){openActions(actions.dataset.actions); return;}
     const send=e.target.closest('[data-send]'); if(send){void sendReminder(send.dataset.send); return;}
-    const sendChannel=e.target.closest('[data-send-channel]'); if(sendChannel){const [id,channel]=sendChannel.dataset.sendChannel.split('|');void sendReminder(id,channel); return;}
+    const selectChannel=e.target.closest('[data-select-channel]'); if(selectChannel){
+      const [id,channel]=selectChannel.dataset.selectChannel.split('|');
+      const appointment=state.appointments.find(x=>x.id===id);
+      if(appointment){ appointment.selectedReminderChannel=channel; appointment.lastDeliveryError=''; save(); updateMessages(); showToast(`${channel} selected for ${appointment.client}.`); }
+      return;
+    }
+    const sendSingle=e.target.closest('[data-send-single]'); if(sendSingle){
+      const appointment=state.appointments.find(x=>x.id===sendSingle.dataset.sendSingle);
+      if(appointment) void sendReminder(appointment.id, selectedQueueChannel(appointment));
+      return;
+    }
     const skip=e.target.closest('[data-skip]'); if(skip){const a=state.appointments.find(x=>x.id===skip.dataset.skip);if(a){a.reminderSkipped=true;save();render();showToast('Reminder skipped. You can re-queue it from the booking menu.');} return;}
     const requeue=e.target.closest('[data-requeue]'); if(requeue){const a=state.appointments.find(x=>x.id===requeue.dataset.requeue); if(a){a.reminderSent=false; a.reminderSkipped=false; save(); closeModal('actionModal'); render(); showToast('Reminder added back to the queue.');} return;}
     const update=e.target.closest('[data-update]'); if(update){updateStatus(update.dataset.update); return;}
     // Row-level Edit/Delete buttons have explicit listeners bound after rendering.
     // Keep this delegation only for action-modal controls outside the table.
     const edit=e.target.closest('#actionModal [data-edit]'); if(edit){openEditAppointment(edit.dataset.edit); return;}
-    const del=e.target.closest('#actionModal [data-delete]'); if(del){deleteAppointment(del.dataset.delete); return;}
+    const del=e.target.closest('#actionModal [data-delete]'); if(del){requestDeleteAppointment(del.dataset.delete); return;}
   });
   document.querySelectorAll('.modal-backdrop').forEach(m=>m.addEventListener('click',e=>{if(e.target===m && m.id!=='onboardingModal')closeModal(m.id)}));
 }
