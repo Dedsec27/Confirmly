@@ -1,4 +1,6 @@
 const storageKey = 'confirmly_mvp_v3';
+// Kept separately so the user-selected default channel survives older state shapes, re-renders, and PWA upgrades.
+const defaultChannelKey = 'confirmly_default_channel_v15';
 const legacyStorageKeys = ['confirmly_mvp_v2', 'confirmly_mvp_v1'];
 const onboardingKey = 'confirmly_onboarding_v2';
 function localISODate(date = new Date()) {
@@ -28,17 +30,34 @@ let activeAppointmentId = null;
 let editingAppointmentId = null;
 let pendingDeleteAppointmentId = null;
 
+function readSavedDefaultChannel(){
+  try {
+    const value = localStorage.getItem(defaultChannelKey);
+    return ['WhatsApp','SMS','Email'].includes(value) ? value : null;
+  } catch { return null; }
+}
+function persistDefaultChannel(channel){
+  try {
+    localStorage.setItem(defaultChannelKey, channel);
+    return localStorage.getItem(defaultChannelKey) === channel;
+  } catch { return false; }
+}
+
 function normaliseState(data){
   const next=data||structuredClone(demo);
   next.settings={...structuredClone(demo.settings),...(next.settings||{})};
   if(!Array.isArray(next.settings.availableChannels)||!next.settings.availableChannels.length) next.settings.availableChannels=['WhatsApp','SMS','Email'];
-  // Email is the product default. Migrate older builds that silently carried the old WhatsApp default.
-  if(!next.settings.channel || !next.settings.availableChannels.includes(next.settings.channel)) {
+  const storedDefault = readSavedDefaultChannel();
+  // The standalone setting is authoritative after a user explicitly saves it.
+  if(storedDefault && next.settings.availableChannels.includes(storedDefault)) {
+    next.settings.channel = storedDefault;
+  } else if(!next.settings.channel || !next.settings.availableChannels.includes(next.settings.channel)) {
     next.settings.channel = next.settings.availableChannels.includes('Email') ? 'Email' : next.settings.availableChannels[0];
   }
-  if(next.settings.channel==='WhatsApp' && !next.settings.defaultChannelMigrationV9) {
+  // One-time migration only for untouched legacy data. Never overwrite a saved user preference.
+  if(!storedDefault && next.settings.channel==='WhatsApp' && !next.settings.defaultChannelMigrationV15) {
     next.settings.channel = next.settings.availableChannels.includes('Email') ? 'Email' : next.settings.channel;
-    next.settings.defaultChannelMigrationV9 = true;
+    next.settings.defaultChannelMigrationV15 = true;
   }
   next.appointments=(next.appointments||[]).map(a=>({preferredChannel:'auto', selectedReminderChannel:null, reminderChannel:null, reminderHistory:[], reminderSkipped:false, ...a}));
   return next;
@@ -542,7 +561,11 @@ function bind(){
     state.settings.availableChannels=enabled;
     const chosenChannel=document.getElementById('channel').value;
     state.settings.channel=enabled.includes(chosenChannel) ? chosenChannel : (enabled.includes('Email') ? 'Email' : enabled[0]);
-    state.settings.defaultChannelMigrationV9=true;
+    state.settings.defaultChannelMigrationV15=true;
+    if(!persistDefaultChannel(state.settings.channel)) {
+      showToast('Could not save the default channel. Browser storage is unavailable.');
+      return;
+    }
     state.settings.defaultValue=Number(document.getElementById('defaultValue').value||0);
     state.settings.message48=document.getElementById('message48').value;
     state.settings.message4=document.getElementById('message4').value;
@@ -550,7 +573,8 @@ function bind(){
     save();
     // Re-read the saved value immediately to catch browser storage failures rather than silently reverting later.
     const savedSettings=JSON.parse(localStorage.getItem(storageKey)||'{}').settings||{};
-    if(savedSettings.channel!==state.settings.channel){ showToast('Could not save the default channel. Check browser storage and try again.'); return; }
+    const savedDefault=readSavedDefaultChannel();
+    if(savedSettings.channel!==state.settings.channel || savedDefault!==state.settings.channel){ showToast('Could not save the default channel. Check browser storage and try again.'); return; }
     saveOnboarding();
     render();
     showToast(`${state.settings.channel} is now the default for Send all.`);

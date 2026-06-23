@@ -1,11 +1,10 @@
-# Confirmly view booking fix v13
+# Confirmly – Settings Persistence Fix v15
 
-Fixes the Reminder queue **View booking** action. The button now always opens the in-app booking action panel after dynamic queue re-renders.
+Fixes the default "Send all" channel reverting after refresh.
 
-Replace all project files, including `api/`, then commit and redeploy.
+- The selected default is now stored in a dedicated browser-storage key as well as the app state.
+- Existing saved settings are hydrated from the saved preference on every launch.
+- Legacy WhatsApp defaults migrate to Email only when the user has not already saved a choice.
+- Service-worker cache version bumped so installed iOS/Android builds can receive the update.
 
-
-## v14 — Email design
-- Rebuilt reminder emails with a responsive, Gmail-safe table layout.
-- Added branded header, appointment card, visual hierarchy, and functional Confirm / Reschedule mailto actions.
-- Updated subject line and preheader.
+Upload all files in this folder, including `api/` and `icons/`, to the repository root and commit.
