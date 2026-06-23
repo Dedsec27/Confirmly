@@ -1,10 +1,17 @@
-# Confirmly – Settings Persistence Fix v15
+# Confirmly — Account menu & plan selector (v17)
 
-Fixes the default "Send all" channel reverting after refresh.
+Upload the contents of this folder to the root of your GitHub Confirmly repository and commit.
 
-- The selected default is now stored in a dedicated browser-storage key as well as the app state.
-- Existing saved settings are hydrated from the saved preference on every launch.
-- Legacy WhatsApp defaults migrate to Email only when the user has not already saved a choice.
-- Service-worker cache version bumped so installed iOS/Android builds can receive the update.
+## Included fixes
 
-Upload all files in this folder, including `api/` and `icons/`, to the repository root and commit.
+- The three-dot account button now opens an in-app workspace menu.
+- Workspace settings opens the Settings screen and focuses the business-name field.
+- Plan & billing opens the in-app plan selector.
+- Install Confirmly uses the existing install prompt or shows the browser install instruction.
+- Upgrade plan now opens the same plan selector.
+- Starter and Pro choices update the visible workspace plan and persist in browser storage.
+- Updated service worker cache version so installed PWA versions receive the update.
+
+## Note
+
+This is still a prototype plan selector. Selecting Starter or Pro does not charge a card because a Stripe/Lemon Squeezy checkout has not been connected yet.

@@ -27,7 +27,7 @@
           <p>Start preventing no-shows today.</p>
           <button type="button" class="ghost-btn" id="upgradeBtn">Upgrade plan</button>
         </div>
-        <div class="account"><div class="avatar">AM</div><div><strong>Alex Morgan</strong><span>Owner</span></div><button type="button" class="more">•••</button></div>
+        <div class="account"><div class="avatar">AM</div><div><strong>Alex Morgan</strong><span>Owner</span></div><button type="button" class="more" id="accountMenuBtn" aria-label="Open account menu" aria-haspopup="dialog">•••</button></div>
       </div>
     </aside>
 
@@ -132,6 +132,29 @@
     </div>
   </div>
 </div>
+
+  <div class="modal-backdrop hidden" id="accountMenuModal">
+    <div class="modal compact account-menu-modal" role="dialog" aria-modal="true" aria-labelledby="accountMenuTitle">
+      <div class="modal-header"><div><p class="eyebrow">YOUR WORKSPACE</p><h2 id="accountMenuTitle">Alex Morgan</h2><p class="account-menu-subtitle">Owner · Atlas Studio</p></div><button type="button" class="close-btn" data-close="accountMenuModal" aria-label="Close account menu">×</button></div>
+      <div class="account-menu-list">
+        <button type="button" class="account-menu-item" id="accountWorkspaceBtn"><span class="account-menu-icon">⚙</span><span><strong>Workspace settings</strong><small>Business details and reminder defaults</small></span><b>›</b></button>
+        <button type="button" class="account-menu-item" id="accountPlanBtn"><span class="account-menu-icon">✦</span><span><strong>Plan &amp; billing</strong><small>Review plans and upgrade options</small></span><b>›</b></button>
+        <button type="button" class="account-menu-item" id="accountInstallBtn"><span class="account-menu-icon">⇩</span><span><strong>Install Confirmly</strong><small>Add it to your phone or desktop</small></span><b>›</b></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="upgradeModal">
+    <div class="modal upgrade-modal" role="dialog" aria-modal="true" aria-labelledby="upgradeModalTitle">
+      <div class="modal-header"><div><p class="eyebrow">CHOOSE YOUR PLAN</p><h2 id="upgradeModalTitle">Keep every booking on track.</h2><p class="upgrade-subtitle">Pick the plan that fits your team. Your selection is saved in this workspace.</p></div><button type="button" class="close-btn" data-close="upgradeModal" aria-label="Close plans">×</button></div>
+      <div class="pricing-grid">
+        <article class="price-card" data-plan-card="Starter"><span class="plan-label">STARTER</span><h3>Starter</h3><p class="price"><strong>€19</strong><span>/ month</span></p><p>For solo service businesses getting started with reminders.</p><ul><li>Up to 150 bookings/month</li><li>Email reminders</li><li>Booking status tracking</li></ul><button type="button" class="outline-btn full" data-plan-select="Starter">Choose Starter</button></article>
+        <article class="price-card featured" data-plan-card="Pro"><span class="plan-badge">MOST POPULAR</span><span class="plan-label">PRO</span><h3>Pro</h3><p class="price"><strong>€39</strong><span>/ month</span></p><p>For teams that want to prevent more no-shows every day.</p><ul><li>Unlimited bookings</li><li>Priority reminder workflows</li><li>Team-ready reporting</li></ul><button type="button" class="primary-btn full" data-plan-select="Pro">Choose Pro</button></article>
+      </div>
+      <p class="checkout-note">Payment checkout is not connected in this prototype yet. Choosing a plan updates this workspace only.</p>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
   <script src="app.js"></script>
 </body>

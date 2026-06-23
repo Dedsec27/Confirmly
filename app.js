@@ -46,6 +46,7 @@ function persistDefaultChannel(channel){
 function normaliseState(data){
   const next=data||structuredClone(demo);
   next.settings={...structuredClone(demo.settings),...(next.settings||{})};
+  next.settings.plan = ['Trial','Starter','Pro'].includes(next.settings.plan) ? next.settings.plan : 'Trial';
   if(!Array.isArray(next.settings.availableChannels)||!next.settings.availableChannels.length) next.settings.availableChannels=['WhatsApp','SMS','Email'];
   const storedDefault = readSavedDefaultChannel();
   // The standalone setting is authoritative after a user explicitly saves it.
@@ -92,6 +93,29 @@ function escapeHtml(v){ return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;'
 function showToast(text){ const t=document.getElementById('toast'); t.textContent=text; t.classList.add('show'); clearTimeout(showToast.timer); showToast.timer=setTimeout(()=>t.classList.remove('show'),2800); }
 function openModal(id){ document.getElementById(id).classList.remove('hidden'); document.body.classList.add('modal-open'); }
 function closeModal(id){ document.getElementById(id).classList.add('hidden'); if(!document.querySelector('.modal-backdrop:not(.hidden)')) document.body.classList.remove('modal-open'); }
+function openUpgradeModal(){
+  document.querySelectorAll('[data-plan-card]').forEach(card=>card.classList.toggle('selected', card.dataset.planCard===state.settings.plan));
+  openModal('upgradeModal');
+}
+function openAccountMenu(){
+  const name=document.querySelector('.account strong')?.textContent || 'Your account';
+  const business=state.settings.businessName || 'Your business';
+  const title=document.getElementById('accountMenuTitle');
+  const subtitle=document.querySelector('.account-menu-subtitle');
+  if(title) title.textContent=name;
+  if(subtitle) subtitle.textContent=`Owner · ${business}`;
+  openModal('accountMenuModal');
+}
+function choosePlan(plan){
+  state.settings.plan=plan;
+  save();
+  document.querySelectorAll('[data-plan-card]').forEach(card=>card.classList.toggle('selected', card.dataset.planCard===plan));
+  document.querySelector('.trial-card .tiny-label').textContent=plan==='Trial'?'FREE TRIAL':`${plan.toUpperCase()} PLAN`;
+  document.querySelector('.trial-card strong').textContent=plan==='Trial'?'11 days left':`${plan} selected`;
+  document.querySelector('.trial-card p').textContent=plan==='Trial'?'Start preventing no-shows today.':'Your plan selection is saved locally.';
+  document.getElementById('upgradeBtn').textContent=plan==='Trial'?'Upgrade plan':'Manage plan';
+  showToast(`${plan} plan selected. Payment checkout is not connected yet.`);
+}
 
 function updateDashboard(){
   const apps=state.appointments;
@@ -262,7 +286,18 @@ function updateSettings(){
   document.querySelectorAll('#availableChannels input[type=checkbox]').forEach(input=>input.checked=(state.settings.availableChannels||[]).includes(input.value));
   document.querySelectorAll('#appointmentChannel option').forEach(option=>{ if(option.value!=='auto') option.disabled=!(state.settings.availableChannels||[]).includes(option.value); });
 }
-function render(){ updateDashboard(); updateQuickStart(); updateAppointmentsTable(); updateMessages(); updateSettings(); }
+function updatePlanUi(){
+  const plan=state.settings.plan || 'Trial';
+  const label=document.querySelector('.trial-card .tiny-label');
+  const title=document.querySelector('.trial-card strong');
+  const copy=document.querySelector('.trial-card p');
+  const button=document.getElementById('upgradeBtn');
+  if(label) label.textContent=plan==='Trial'?'FREE TRIAL':`${plan.toUpperCase()} PLAN`;
+  if(title) title.textContent=plan==='Trial'?'11 days left':`${plan} selected`;
+  if(copy) copy.textContent=plan==='Trial'?'Start preventing no-shows today.':'Your plan selection is saved locally.';
+  if(button) button.textContent=plan==='Trial'?'Upgrade plan':'Manage plan';
+}
+function render(){ updateDashboard(); updateQuickStart(); updateAppointmentsTable(); updateMessages(); updateSettings(); updatePlanUi(); }
 
 function renderOnboarding(){
   const dots=[1,2,3];
@@ -551,7 +586,12 @@ function bind(){
   document.getElementById('confirmDeleteBtn')?.addEventListener('click', confirmDeleteAppointment);
   document.getElementById('cancelDeleteBtn')?.addEventListener('click',()=>{pendingDeleteAppointmentId=null; closeModal('deleteModal');});
   document.getElementById('deleteModal')?.addEventListener('click',event=>{if(event.target===event.currentTarget){pendingDeleteAppointmentId=null; closeModal('deleteModal');}});
-  document.getElementById('upgradeBtn').addEventListener('click',()=>showToast('Upgrade checkout would open here.'));
+  document.getElementById('upgradeBtn').addEventListener('click',openUpgradeModal);
+  document.getElementById('accountMenuBtn')?.addEventListener('click',openAccountMenu);
+  document.getElementById('accountWorkspaceBtn')?.addEventListener('click',()=>{ closeModal('accountMenuModal'); goToView('settings'); setTimeout(()=>document.getElementById('businessName')?.focus(), 0); });
+  document.getElementById('accountPlanBtn')?.addEventListener('click',()=>{ closeModal('accountMenuModal'); openUpgradeModal(); });
+  document.getElementById('accountInstallBtn')?.addEventListener('click',()=>{ closeModal('accountMenuModal'); document.getElementById('installAppBtn')?.click(); });
+  document.querySelectorAll('[data-plan-select]').forEach(button=>button.addEventListener('click',()=>choosePlan(button.dataset.planSelect)));
   document.getElementById('mobileMenu').addEventListener('click',()=>document.getElementById('sidebar').classList.toggle('open'));
   document.querySelectorAll('.queue-tab').forEach(b=>b.addEventListener('click',()=>{currentQueue=b.dataset.queue;updateMessages()}));
   document.getElementById('saveSettingsBtn').addEventListener('click',()=>{
