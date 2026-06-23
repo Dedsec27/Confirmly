@@ -51,3 +51,8 @@ Edit and Delete are now visible directly on every appointment row, rather than h
 - Edit and Delete row buttons now use direct listeners after every appointment-table render.
 - Touch/click propagation is stopped so table, mobile, and global handlers cannot swallow or duplicate the action.
 - Service-worker cache bumped to `confirmly-booking-actions-v6`.
+
+
+## v7 deletion sync
+- Deleting a booking instantly refreshes Bookings, dashboard metrics, reminder queue, and any current filtered list.
+- All booking statuses can be deleted: waiting, confirmed, rescheduled, no-show, and cancelled.

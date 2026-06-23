@@ -320,16 +320,30 @@ function openEditAppointment(id){
   prepareAppointmentForm(appointment);
   openModal('appointmentModal');
 }
+function refreshBookingSurfaces(){
+  // Keep the active filters/search exactly as they are while immediately syncing every UI area.
+  updateAppointmentsTable();
+  updateDashboard();
+  updateMessages();
+  updateQuickStart();
+}
+
 function deleteAppointment(id){
   const appointment=state.appointments.find(x=>x.id===id);
-  if(!appointment) return;
-  if(!window.confirm(`Delete ${appointment.client}'s booking? This cannot be undone.`)) return;
-  state.appointments=state.appointments.filter(x=>x.id!==id);
+  if(!appointment) { showToast('This booking could not be found.'); return; }
+
+  // Every status is deletable: waiting, confirmed, rescheduled, no-show, or cancelled.
+  if(!window.confirm(`Delete ${appointment.client}'s ${statusLabel(appointment.status).toLowerCase()} booking? This cannot be undone.`)) return;
+
+  const before=state.appointments.length;
+  state.appointments=state.appointments.filter(x=>String(x.id)!==String(id));
+  if(state.appointments.length===before){ showToast('This booking could not be deleted.'); return; }
+
   save();
   closeModal('actionModal');
-  render();
-  showToast('Booking deleted.');
-  haptic();
+  refreshBookingSurfaces();
+  showToast(`${appointment.client}'s booking deleted.`);
+  haptic('success');
 }
 function addAppointment(e){
   e.preventDefault(); const fd=new FormData(e.target);
@@ -341,13 +355,13 @@ function addAppointment(e){
     save();
     editingAppointmentId=null;
     closeModal('appointmentModal');
-    render();
+    refreshBookingSurfaces();
     showToast('Booking changes saved.');
     haptic('success');
     return;
   }
   state.appointments.push({id:crypto.randomUUID(),...changes,reminderChannel:null,reminderHistory:[],reminderSkipped:false,status:'waiting',reminderSent:false});
-  onboarding.bookingAdded=true; save(); saveOnboarding(); editingAppointmentId=null; closeModal('appointmentModal'); render(); showToast('Booking added. It is now ready for a reminder.');
+  onboarding.bookingAdded=true; save(); saveOnboarding(); editingAppointmentId=null; closeModal('appointmentModal'); refreshBookingSurfaces(); showToast('Booking added. It is now ready for a reminder.');
 }
 
 function goToView(view){

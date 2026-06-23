@@ -1,4 +1,4 @@
-const CACHE = 'confirmly-booking-actions-v6';
+const CACHE = 'confirmly-delete-sync-v7';
 const APP_SHELL = [
   './',
   './index.html',
