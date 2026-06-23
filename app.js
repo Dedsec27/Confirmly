@@ -45,8 +45,8 @@ function sortedAppointments(){ return [...state.appointments].sort((a,b)=>dateTi
 function isToday(a){ return a.date===todayISO; }
 function escapeHtml(v){ return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
 function showToast(text){ const t=document.getElementById('toast'); t.textContent=text; t.classList.add('show'); clearTimeout(showToast.timer); showToast.timer=setTimeout(()=>t.classList.remove('show'),2800); }
-function openModal(id){ document.getElementById(id).classList.remove('hidden'); }
-function closeModal(id){ document.getElementById(id).classList.add('hidden'); }
+function openModal(id){ document.getElementById(id).classList.remove('hidden'); document.body.classList.add('modal-open'); }
+function closeModal(id){ document.getElementById(id).classList.add('hidden'); if(!document.querySelector('.modal-backdrop:not(.hidden)')) document.body.classList.remove('modal-open'); }
 
 function updateDashboard(){
   const apps=state.appointments;
@@ -97,7 +97,7 @@ function updateAppointmentsTable(){
   const status=document.getElementById('statusFilter').value;
   const term=document.getElementById('searchInput').value.toLowerCase().trim();
   const rows=sortedAppointments().filter(a=>(status==='all'||a.status===status)&&(`${a.client} ${a.service} ${a.contact}`).toLowerCase().includes(term));
-  document.getElementById('appointmentsTable').innerHTML=rows.length?rows.map(a=>`<tr><td class="client-cell"><strong>${escapeHtml(a.client)}</strong><span>${escapeHtml(a.contact)}</span></td><td>${escapeHtml(a.service)}</td><td><strong>${prettyDate(a.date)}</strong><br><span style="color:#7b8680;font-size:11px">${a.time}</span></td><td>${money(a.value)}</td><td><span class="status ${a.status}">${statusLabel(a.status)}</span></td><td><button class="row-menu" aria-label="Update ${escapeHtml(a.client)}" data-actions="${a.id}">⋮</button></td></tr>`).join(''):`<tr><td colspan="6"><div class="empty-state"><strong>No bookings found</strong><span>Try a different filter or add a new booking.</span></div></td></tr>`;
+  document.getElementById('appointmentsTable').innerHTML=rows.length?rows.map(a=>`<tr><td class="client-cell"><strong>${escapeHtml(a.client)}</strong><span>${escapeHtml(a.contact)}</span></td><td data-label="Service">${escapeHtml(a.service)}</td><td data-label="When"><strong>${prettyDate(a.date)}</strong><span style="color:#7b8680;font-size:11px">${a.time}</span></td><td data-label="Value">${money(a.value)}</td><td data-label="Status"><span class="status ${a.status}">${statusLabel(a.status)}</span></td><td><button class="row-menu" aria-label="Update ${escapeHtml(a.client)}" data-actions="${a.id}">⋮</button></td></tr>`).join(''):`<tr><td colspan="6"><div class="empty-state"><strong>No bookings found</strong><span>Try a different filter or add a new booking.</span></div></td></tr>`;
 }
 
 function messageText(a){ return state.settings.message48.replace('{first_name}',a.client.split(' ')[0]).replace('{service}',a.service).replace('{date}',prettyDate(a.date)).replace('{time}',a.time); }
@@ -172,18 +172,18 @@ function openActions(id){
 function updateStatus(status){
   const a=state.appointments.find(x=>x.id===activeAppointmentId); if(!a)return;
   a.status=status; if(status==='waiting')a.reminderSent=false;
-  save(); closeModal('actionModal'); render(); showToast(`Booking marked ${statusLabel(status).toLowerCase()}.`);
+  save(); closeModal('actionModal'); render(); showToast(`Booking marked ${statusLabel(status).toLowerCase()}.`); haptic('success');
 }
 function sendReminder(id, channel=state.settings.channel){
   const a=state.appointments.find(x=>x.id===id); if(!a)return;
   a.reminderSent=true; a.reminderChannel=channel; a.reminderHistory=[...(a.reminderHistory||[]),{channel,at:new Date().toISOString()}];
-  onboarding.reminderSent=true; save(); saveOnboarding(); render(); showToast(`Reminder sent via ${channel} to ${a.client}.`);
+  onboarding.reminderSent=true; save(); saveOnboarding(); render(); showToast(`Reminder sent via ${channel} to ${a.client}.`); haptic('success');
 }
 function sendAll(){
   const due=state.appointments.filter(a=>a.status==='waiting'&&!a.reminderSent);
   if(!due.length){ document.getElementById('newAppointmentBtn').click(); return; }
   due.forEach(a=>{ const channel=(a.preferredChannel&&a.preferredChannel!=='auto')?a.preferredChannel:state.settings.channel; a.reminderSent=true; a.reminderChannel=channel; a.reminderHistory=[...(a.reminderHistory||[]),{channel,at:new Date().toISOString()}]; });
-  onboarding.reminderSent=true; save(); saveOnboarding(); render(); showToast(`${due.length} reminder${due.length===1?'':'s'} sent using each client’s preferred channel.`);
+  onboarding.reminderSent=true; save(); saveOnboarding(); render(); showToast(`${due.length} reminder${due.length===1?'':'s'} sent using each client’s preferred channel.`); haptic('success');
 }
 function addAppointment(e){
   e.preventDefault(); const fd=new FormData(e.target);
@@ -201,7 +201,7 @@ function bind(){
     document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===view));
     const titles={dashboard:'Your appointment control center',appointments:'Your bookings',messages:'Send reminders',settings:'Settings'};
     const eyebrows={dashboard:'YOUR DAILY WORKFLOW',appointments:'BOOKINGS',messages:'REMINDERS',settings:'CONFIRMLY WORKSPACE'};
-    document.getElementById('pageTitle').textContent=titles[view]; document.getElementById('pageEyebrow').textContent=eyebrows[view]; document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('pageTitle').textContent=titles[view]; document.getElementById('pageEyebrow').textContent=eyebrows[view]; document.getElementById('sidebar').classList.remove('open'); setMobileView(view); haptic();
   }));
   document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>goToView(b.dataset.go)));
   document.getElementById('newAppointmentBtn').addEventListener('click',()=>{document.querySelector('[name="date"]').value=todayISO;document.querySelector('[name="value"]').value=state.settings.defaultValue;document.querySelector('[name="preferredChannel"]').value='auto';openModal('appointmentModal')});
@@ -239,6 +239,62 @@ function bind(){
   document.querySelectorAll('.modal-backdrop').forEach(m=>m.addEventListener('click',e=>{if(e.target===m && m.id!=='onboardingModal')closeModal(m.id)}));
 }
 
+function haptic(type='light'){
+  if (!('vibrate' in navigator)) return;
+  navigator.vibrate(type==='success' ? [10,35,16] : 8);
+}
+
+function setMobileView(view){
+  document.querySelectorAll('.mobile-nav-item').forEach(item=>item.classList.toggle('active',item.dataset.mobileView===view));
+}
+
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', event => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  document.getElementById('installAppBtn')?.classList.remove('hidden');
+});
+window.addEventListener('appinstalled', () => {
+  deferredInstallPrompt = null;
+  document.getElementById('installAppBtn')?.classList.add('hidden');
+  showToast('Confirmly installed. It is now available from your home screen.');
+});
+
+document.getElementById('installAppBtn')?.addEventListener('click', async () => {
+  if(!deferredInstallPrompt){ showToast('Use your browser menu and choose “Install app”.'); return; }
+  deferredInstallPrompt.prompt();
+  await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
+  document.getElementById('installAppBtn')?.classList.add('hidden');
+});
+
+document.querySelectorAll('.mobile-nav-item').forEach(button=>button.addEventListener('click',()=>{
+  const desktopNav=document.querySelector(`[data-view="${button.dataset.mobileView}"]`);
+  desktopNav?.click();
+  setMobileView(button.dataset.mobileView);
+  window.scrollTo({top:0,behavior:'smooth'});
+  haptic();
+}));
+document.getElementById('mobileAddBtn')?.addEventListener('click',()=>{
+  document.getElementById('newAppointmentBtn').click();
+  haptic();
+});
+
 bind();
 render();
 if(!onboarding.completed){ renderOnboarding(); openModal('onboardingModal'); }
+
+// iPhone / PWA install hint. Safari requires the user to use Share → Add to Home Screen.
+(function setupIosInstallHint(){
+  const banner = document.getElementById('iosInstallBanner');
+  const close = document.getElementById('iosInstallClose');
+  if(!banner || !close) return;
+  const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  const dismissed = localStorage.getItem('confirmly_ios_install_dismissed') === 'true';
+  if(isIos && !isStandalone && !dismissed){ banner.classList.remove('hidden'); }
+  close.addEventListener('click',()=>{
+    banner.classList.add('hidden');
+    localStorage.setItem('confirmly_ios_install_dismissed','true');
+  });
+})();

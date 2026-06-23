@@ -1,32 +1,17 @@
-# Confirmly MVP
+# Confirmly
 
-A polished, local-first no-show prevention app prototype.
+A mobile-first appointment confirmation and no-show prevention app for service businesses.
 
-## Run it
+## Mobile improvements in this build
 
-1. Open `index.html` directly in Chrome/Edge/Firefox.
-2. Or serve the folder locally:
+- Bottom navigation and a persistent “New booking” action on phones
+- Larger touch targets and iOS-safe bottom sheets
+- Bookings become easy-to-scan cards on small screens
+- Android install prompt plus iPhone Home Screen install guidance
+- Mobile-friendly input sizing that avoids iOS zooming
+- Smooth, safe-area-aware layouts for iPhones and Android devices
+- Light haptic feedback on supported Android devices
 
-```bash
-npx serve .
-```
+## Deploy update
 
-## Includes
-
-- Appointment dashboard and search/filtering
-- Confirmation, reschedule, no-show and cancel states
-- Reminder queue with individual/bulk sending simulation
-- LocalStorage persistence
-- Responsive mobile layout
-- Configurable business name, channel, value and reminder templates
-
-## Production integrations to add next
-
-- Supabase/Postgres for real multi-user data
-- Twilio or WhatsApp Business API for delivery
-- Google Calendar OAuth sync
-- Stripe subscriptions and deposits
-- Auth (Clerk or Supabase Auth)
-- Team roles and analytics
-
-Dedsec
+Replace the repository files with this folder’s contents and commit the changes. Vercel will redeploy automatically.
