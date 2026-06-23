@@ -27,3 +27,9 @@ This is still a prototype plan selector. Selecting Starter or Pro does not charg
 
 ## v20 – Live email status spacing
 - Added clear vertical spacing between the “Live email is configured” status card and the “Check again” button.
+
+
+## v21
+- Added a dark mode option in Settings.
+- The selected theme is saved locally and restored on reload.
+- Service worker cache bumped so installed apps receive the update.

@@ -1,4 +1,4 @@
-const CACHE = 'confirmly-live-email-spacing-v20';
+const CACHE = 'confirmly-dark-mode-v21';
 const APP_SHELL = [
   './',
   './index.html',

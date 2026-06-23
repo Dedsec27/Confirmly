@@ -1,6 +1,7 @@
 const storageKey = 'confirmly_mvp_v3';
 // Kept separately so the user-selected default channel survives older state shapes, re-renders, and PWA upgrades.
 const defaultChannelKey = 'confirmly_default_channel_v15';
+const themeKey = 'confirmly_theme_v21';
 const legacyStorageKeys = ['confirmly_mvp_v2', 'confirmly_mvp_v1'];
 const onboardingKey = 'confirmly_onboarding_v2';
 function localISODate(date = new Date()) {
@@ -11,7 +12,7 @@ function localISODate(date = new Date()) {
 function todayISO() { return localISODate(); }
 function shiftDate(days) { const d = new Date(); d.setDate(d.getDate() + days); return localISODate(d); }
 const demo = {
-  settings:{businessName:'Atlas Studio',channel:'Email',availableChannels:['WhatsApp','SMS','Email'],defaultValue:60,message48:'Hi {first_name}, just a quick reminder about your {service} appointment on {date} at {time}. Tap below to confirm or reschedule.',message4:'Hi {first_name}, we’re looking forward to seeing you at {time} today. Please confirm your appointment.'},
+  settings:{businessName:'Atlas Studio',channel:'Email',availableChannels:['WhatsApp','SMS','Email'],defaultValue:60,theme:'light',message48:'Hi {first_name}, just a quick reminder about your {service} appointment on {date} at {time}. Tap below to confirm or reschedule.',message4:'Hi {first_name}, we’re looking forward to seeing you at {time} today. Please confirm your appointment.'},
   appointments:[
     {id:'a1',client:'Sofia Petrou',contact:'+30 694 111 2233',service:'Colour + cut',date:todayISO(),time:'10:30',value:85,status:'confirmed',notes:'Prefers subtle warm tones.',reminderSent:true},
     {id:'a2',client:'Nikos Vassiliou',contact:'+30 697 345 6655',service:'Beard trim',date:todayISO(),time:'12:15',value:30,status:'waiting',notes:'',reminderSent:false},
@@ -44,11 +45,33 @@ function persistDefaultChannel(channel){
   } catch { return false; }
 }
 
+function readSavedTheme(){
+  try {
+    const value = localStorage.getItem(themeKey);
+    return ['light','dark'].includes(value) ? value : null;
+  } catch { return null; }
+}
+function persistTheme(theme){
+  try {
+    localStorage.setItem(themeKey, theme);
+    return localStorage.getItem(themeKey) === theme;
+  } catch { return false; }
+}
+function applyTheme(theme){
+  const resolved = theme === 'dark' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', resolved);
+  document.documentElement.style.colorScheme = resolved;
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+  if(metaTheme) metaTheme.setAttribute('content', resolved === 'dark' ? '#0f1713' : '#f3f5f2');
+}
+
 function normaliseState(data){
   const next=data||structuredClone(demo);
   next.settings={...structuredClone(demo.settings),...(next.settings||{})};
   next.settings.plan = ['Trial','Starter','Pro'].includes(next.settings.plan) ? next.settings.plan : 'Trial';
   if(!Array.isArray(next.settings.availableChannels)||!next.settings.availableChannels.length) next.settings.availableChannels=['WhatsApp','SMS','Email'];
+  const storedTheme = readSavedTheme();
+  next.settings.theme = ['light','dark'].includes(storedTheme) ? storedTheme : (['light','dark'].includes(next.settings.theme) ? next.settings.theme : 'light');
   const storedDefault = readSavedDefaultChannel();
   // The standalone setting is authoritative after a user explicitly saves it.
   if(storedDefault && next.settings.availableChannels.includes(storedDefault)) {
@@ -287,6 +310,7 @@ function updateSettings(){
   document.getElementById('businessName').value=state.settings.businessName;
   document.getElementById('channel').value=state.settings.channel;
   document.getElementById('defaultValue').value=state.settings.defaultValue;
+  document.getElementById('themeSelect').value=state.settings.theme || 'light';
   document.getElementById('message48').value=state.settings.message48;
   document.getElementById('message4').value=state.settings.message4;
   document.querySelectorAll('#availableChannels input[type=checkbox]').forEach(input=>input.checked=(state.settings.availableChannels||[]).includes(input.value));
@@ -303,7 +327,7 @@ function updatePlanUi(){
   if(copy) copy.textContent=plan==='Trial'?'Start preventing no-shows today.':'Your plan selection is saved locally.';
   if(button) button.textContent=plan==='Trial'?'Upgrade plan':'Manage plan';
 }
-function render(){ updateDashboard(); updateQuickStart(); updateAppointmentsTable(); updateMessages(); updateSettings(); updatePlanUi(); }
+function render(){ applyTheme(state.settings.theme); updateDashboard(); updateQuickStart(); updateAppointmentsTable(); updateMessages(); updateSettings(); updatePlanUi(); }
 
 function renderOnboarding(){
   const dots=[1,2,3];
@@ -643,6 +667,11 @@ function bind(){
       return;
     }
     state.settings.defaultValue=Number(document.getElementById('defaultValue').value||0);
+    state.settings.theme=document.getElementById('themeSelect').value==='dark' ? 'dark' : 'light';
+    if(!persistTheme(state.settings.theme)) {
+      showToast('Could not save the appearance preference. Browser storage is unavailable.');
+      return;
+    }
     state.settings.message48=document.getElementById('message48').value;
     state.settings.message4=document.getElementById('message4').value;
     onboarding.detailsSet=true;
@@ -650,10 +679,12 @@ function bind(){
     // Re-read the saved value immediately to catch browser storage failures rather than silently reverting later.
     const savedSettings=JSON.parse(localStorage.getItem(storageKey)||'{}').settings||{};
     const savedDefault=readSavedDefaultChannel();
+    const savedTheme=readSavedTheme();
     if(savedSettings.channel!==state.settings.channel || savedDefault!==state.settings.channel){ showToast('Could not save the default channel. Check browser storage and try again.'); return; }
+    if(savedSettings.theme!==state.settings.theme || savedTheme!==state.settings.theme){ showToast('Could not save the appearance setting. Check browser storage and try again.'); return; }
     saveOnboarding();
     render();
-    showToast(`${state.settings.channel} is now the default for Send all.`);
+    showToast(`Settings saved. ${state.settings.theme==='dark' ? 'Dark mode' : 'Light mode'} is now active.`);
   });
   document.getElementById('previewTemplateBtn').addEventListener('click',()=>{const sample={client:'Sofia Petrou',service:'Haircut',date:todayISO(),time:'15:00'};showToast(messageText(sample));});
   document.getElementById('openGuideBtn').addEventListener('click',startGuide);
@@ -727,6 +758,7 @@ document.getElementById('mobileAddBtn')?.addEventListener('click',()=>{
 });
 
 bind();
+applyTheme(state.settings.theme);
 render();
 void refreshEmailStatus();
 if(!onboarding.completed){ renderOnboarding(); openModal('onboardingModal'); }

@@ -122,3 +122,185 @@ button{touch-action:manipulation}
     min-height:42px;
   }
 }
+
+
+/* v21: Dark mode */
+:root[data-theme="dark"]{
+  color-scheme: dark;
+}
+:root[data-theme="dark"] body{
+  background:#0f1713;
+  color:#e6efe9;
+}
+:root[data-theme="dark"] .app-shell,
+:root[data-theme="dark"] .main-content{
+  background:#0f1713;
+}
+:root[data-theme="dark"] .sidebar,
+:root[data-theme="dark"] .trial-card,
+:root[data-theme="dark"] .panel,
+:root[data-theme="dark"] .metric-card,
+:root[data-theme="dark"] .table-panel,
+:root[data-theme="dark"] .modal,
+:root[data-theme="dark"] .onboarding-modal,
+:root[data-theme="dark"] .account-menu-item,
+:root[data-theme="dark"] .price-card,
+:root[data-theme="dark"] .mobile-bottom-nav,
+:root[data-theme="dark"] .ios-install-banner,
+:root[data-theme="dark"] .message-copy,
+:root[data-theme="dark"] .delete-details,
+:root[data-theme="dark"] .live-status,
+:root[data-theme="dark"] .channel-option{
+  background:#16211b;
+  border-color:#27342d;
+  color:#e6efe9;
+}
+:root[data-theme="dark"] .price-card.featured,
+:root[data-theme="dark"] .table-scroll table,
+:root[data-theme="dark"] .table-scroll thead,
+:root[data-theme="dark"] .table-scroll tbody,
+:root[data-theme="dark"] .queue-tabs,
+:root[data-theme="dark"] .setting-panel,
+:root[data-theme="dark"] .automation-panel,
+:root[data-theme="dark"] .queue-panel{
+  background:#16211b;
+}
+:root[data-theme="dark"] .topbar,
+:root[data-theme="dark"] .section-toolbar,
+:root[data-theme="dark"] .panel-header,
+:root[data-theme="dark"] .table-scroll th,
+:root[data-theme="dark"] .table-scroll td,
+:root[data-theme="dark"] .message-card,
+:root[data-theme="dark"] .channel-picker,
+:root[data-theme="dark"] .account,
+:root[data-theme="dark"] .price-card,
+:root[data-theme="dark"] .checkout-note,
+:root[data-theme="dark"] .setup-note,
+:root[data-theme="dark"] .setup-copy,
+:root[data-theme="dark"] .mini-tip,
+:root[data-theme="dark"] .onboarding-highlight,
+:root[data-theme="dark"] .flow-line,
+:root[data-theme="dark"] .flow-step,
+:root[data-theme="dark"] .legend > div,
+:root[data-theme="dark"] .live-status + #checkEmailStatusBtn,
+:root[data-theme="dark"] .delete-modal-actions,
+:root[data-theme="dark"] .modal-actions,
+:root[data-theme="dark"] .toolbar-controls,
+:root[data-theme="dark"] .table-scroll tr{
+  border-color:#27342d;
+}
+:root[data-theme="dark"] h1,
+:root[data-theme="dark"] h2,
+:root[data-theme="dark"] h3,
+:root[data-theme="dark"] strong,
+:root[data-theme="dark"] label,
+:root[data-theme="dark"] .brand,
+:root[data-theme="dark"] .nav-item,
+:root[data-theme="dark"] .mobile-nav-item,
+:root[data-theme="dark"] .panel-header h2,
+:root[data-theme="dark"] .price-card h3,
+:root[data-theme="dark"] .delete-modal h2,
+:root[data-theme="dark"] .account-menu-item strong{
+  color:#edf6f0;
+}
+:root[data-theme="dark"] p,
+:root[data-theme="dark"] small,
+:root[data-theme="dark"] span,
+:root[data-theme="dark"] .eyebrow,
+:root[data-theme="dark"] .metric-label,
+:root[data-theme="dark"] .account span,
+:root[data-theme="dark"] .setup-copy,
+:root[data-theme="dark"] .setup-note,
+:root[data-theme="dark"] .upgrade-subtitle,
+:root[data-theme="dark"] .account-menu-subtitle,
+:root[data-theme="dark"] .price span,
+:root[data-theme="dark"] .price-card > p,
+:root[data-theme="dark"] .price-card li,
+:root[data-theme="dark"] .delete-copy,
+:root[data-theme="dark"] .delete-details,
+:root[data-theme="dark"] .message-meta,
+:root[data-theme="dark"] .empty-state span,
+:root[data-theme="dark"] .flow-step p{
+  color:#aab8b0;
+}
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] textarea,
+:root[data-theme="dark"] .row-action-btn,
+:root[data-theme="dark"] .outline-btn,
+:root[data-theme="dark"] .ghost-btn,
+:root[data-theme="dark"] .icon-btn,
+:root[data-theme="dark"] .text-btn,
+:root[data-theme="dark"] .small-btn,
+:root[data-theme="dark"] .channel-send,
+:root[data-theme="dark"] .danger-outline-btn,
+:root[data-theme="dark"] .close-btn{
+  background:#111914;
+  color:#edf6f0;
+  border-color:#314038;
+}
+:root[data-theme="dark"] input::placeholder,
+:root[data-theme="dark"] textarea::placeholder{
+  color:#718077;
+}
+:root[data-theme="dark"] .nav-item.active,
+:root[data-theme="dark"] .mobile-nav-item.active span,
+:root[data-theme="dark"] .account-menu-icon,
+:root[data-theme="dark"] .metric-icon.mint,
+:root[data-theme="dark"] .metric-icon.lilac,
+:root[data-theme="dark"] .metric-icon.amber,
+:root[data-theme="dark"] .metric-icon.rose{
+  background:#1f2d26;
+}
+:root[data-theme="dark"] .more,
+:root[data-theme="dark"] .avatar,
+:root[data-theme="dark"] .brand-mark{
+  background:#1c7650;
+  color:#fff;
+}
+:root[data-theme="dark"] .toast{
+  background:#111914;
+  color:#edf6f0;
+}
+:root[data-theme="dark"] .checkout-note,
+:root[data-theme="dark"] .delivery-note,
+:root[data-theme="dark"] .email-warning,
+:root[data-theme="dark"] .email-warning.error{
+  border-color:#4f4630;
+}
+:root[data-theme="dark"] .email-warning{background:#2e2817;color:#f0df9e}
+:root[data-theme="dark"] .email-warning.error{background:#341c1f;color:#f0b1b1;border-color:#5c3037}
+:root[data-theme="dark"] .delete-icon{background:#341c1f;border-color:#5c3037;color:#f0b1b1}
+:root[data-theme="dark"] .danger-confirm-btn{background:#b94747;border-color:#b94747;color:#fff}
+:root[data-theme="dark"] .danger-confirm-btn:hover{background:#c65959}
+:root[data-theme="dark"] .live-dot{box-shadow:0 0 0 4px rgba(37,131,86,.18)}
+:root[data-theme="dark"] .modal-backdrop{background:rgba(0,0,0,.62)}
+:root[data-theme="dark"] .primary-channel,
+:root[data-theme="dark"] .outline-btn:hover,
+:root[data-theme="dark"] .ghost-btn:hover,
+:root[data-theme="dark"] .row-action-btn:hover,
+:root[data-theme="dark"] .small-btn:hover,
+:root[data-theme="dark"] .channel-send:hover,
+:root[data-theme="dark"] .danger-outline-btn:hover:not(:disabled),
+:root[data-theme="dark"] .account-menu-item:hover,
+:root[data-theme="dark"] .account-menu-item:focus-visible{
+  background:#1b2922;
+}
+:root[data-theme="dark"] .mobile-menu,
+:root[data-theme="dark"] .top-actions .outline-btn,
+:root[data-theme="dark"] .top-actions .icon-btn{
+  background:#111914;
+  border-color:#314038;
+  color:#edf6f0;
+}
+:root[data-theme="dark"] .trial-card .ghost-btn,
+:root[data-theme="dark"] .outline-btn.full{
+  background:#111914;
+}
+:root[data-theme="dark"] .progress-ring .ring-center{
+  background:#16211b;
+  color:#edf6f0;
+}
+@media(max-width:760px){
+  :root[data-theme="dark"] .modal-actions{background:#16211b}
+}
