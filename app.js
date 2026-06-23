@@ -221,9 +221,18 @@ function updateMessages(){
       ? `<div class="email-warning">Email is selected, but this booking has no valid email address. <button type="button" data-edit="${a.id}">Edit booking</button></div>` : '';
     const failure=a.lastDeliveryError ? `<div class="email-warning error">Last delivery failed: ${escapeHtml(a.lastDeliveryError)} <button type="button" data-edit="${a.id}">Edit booking</button></div>` : '';
     const deliveryNote=!a.reminderSent && channel!=='Email' ? `<span class="delivery-note">${channel} is currently demo-only. Confirmly will record the reminder, but no real ${channel} message is sent yet.</span>` : '';
-    return `<article class="message-card"><div class="message-card-top"><div><strong>${escapeHtml(a.client)}</strong><div class="message-meta">${escapeHtml(a.service)} · ${prettyDate(a.date)} at ${a.time} ${a.reminderSent?`<span class="channel-badge">Sent via ${escapeHtml(a.reminderChannel || channel)}</span>`:''}</div></div><span class="status ${a.reminderSent?'confirmed':'waiting'}">${a.reminderSent?'Sent':'Ready'}</span></div><div class="message-copy">${escapeHtml(messageText(a))}</div>${emailWarning}${failure}${!a.reminderSent?`<div class="channel-picker"><span>Choose channel</span>${choices}</div>${deliveryNote}<div class="message-actions"><button type="button" class="small-btn send-btn" data-send-single="${a.id}">Send this reminder</button><button type="button" class="small-btn skip-btn" data-skip="${a.id}">Skip for now</button></div>`:`<div class="message-actions"><button type="button" class="small-btn skip-btn" data-actions="${a.id}">View booking</button></div>`}</article>`;
+    return `<article class="message-card"><div class="message-card-top"><div><strong>${escapeHtml(a.client)}</strong><div class="message-meta">${escapeHtml(a.service)} · ${prettyDate(a.date)} at ${a.time} ${a.reminderSent?`<span class="channel-badge">Sent via ${escapeHtml(a.reminderChannel || channel)}</span>`:''}</div></div><span class="status ${a.reminderSent?'confirmed':'waiting'}">${a.reminderSent?'Sent':'Ready'}</span></div><div class="message-copy">${escapeHtml(messageText(a))}</div>${emailWarning}${failure}${!a.reminderSent?`<div class="channel-picker"><span>Choose channel</span>${choices}</div>${deliveryNote}<div class="message-actions"><button type="button" class="small-btn send-btn" data-send-single="${a.id}">Send this reminder</button><button type="button" class="small-btn skip-btn" data-skip="${a.id}">Skip for now</button></div>`:`<div class="message-actions"><button type="button" class="small-btn skip-btn" data-view-booking="${a.id}">View booking</button></div>`}</article>`;
   }).join(''):`<div class="empty-state"><strong>${currentQueue==='due'?'No reminders ready to send':'No sent reminders yet'}</strong><span>${currentQueue==='due'?'Nice — everyone has been contacted.':'Send a reminder to see it here.'}</span></div>`;
   document.querySelectorAll('.queue-tab').forEach(btn=>btn.classList.toggle('active',btn.dataset.queue===currentQueue));
+  // Bind sent-reminder booking actions after every queue re-render. This avoids relying
+  // on stale listeners or event delegation when cards are replaced dynamically.
+  holder.querySelectorAll('[data-view-booking]').forEach(button=>{
+    button.addEventListener('click', event=>{
+      event.preventDefault();
+      event.stopPropagation();
+      openActions(button.dataset.viewBooking);
+    });
+  });
 }
 function updateSettings(){
   document.getElementById('businessName').value=state.settings.businessName;
@@ -551,6 +560,7 @@ function bind(){
   document.getElementById('skipOnboardingBtn').addEventListener('click',()=>handleOnboarding('skip'));
   document.addEventListener('click',e=>{
     const guide=e.target.closest('[data-onboarding]'); if(guide){handleOnboarding(guide.dataset.onboarding); return;}
+    const viewBooking=e.target.closest('[data-view-booking]'); if(viewBooking){e.preventDefault(); openActions(viewBooking.dataset.viewBooking); return;}
     const actions=e.target.closest('[data-actions]'); if(actions){openActions(actions.dataset.actions); return;}
     const send=e.target.closest('[data-send]'); if(send){void sendReminder(send.dataset.send); return;}
     const selectChannel=e.target.closest('[data-select-channel]'); if(selectChannel){
