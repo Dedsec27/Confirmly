@@ -1,4 +1,4 @@
-const CACHE = 'confirmly-mobile-v2';
+const CACHE = 'confirmly-live-email-v1';
 const ASSETS = [
   './',
   './index.html',

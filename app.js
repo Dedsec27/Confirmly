@@ -101,6 +101,27 @@ function updateAppointmentsTable(){
 }
 
 function messageText(a){ return state.settings.message48.replace('{first_name}',a.client.split(' ')[0]).replace('{service}',a.service).replace('{date}',prettyDate(a.date)).replace('{time}',a.time); }
+function isEmailAddress(value){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value||'').trim()); }
+async function deliverLiveEmail(a){
+  const to=String(a.contact||'').trim();
+  if(!isEmailAddress(to)) throw new Error('This booking needs a valid email address before you can send an email reminder.');
+  const response=await fetch('/api/send-reminder',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-Confirmly-Request':'reminder'},
+    body:JSON.stringify({
+      to,
+      clientName:a.client,
+      service:a.service,
+      appointmentDate:prettyDate(a.date),
+      appointmentTime:a.time,
+      businessName:state.settings.businessName,
+      message:messageText(a)
+    })
+  });
+  const result=await response.json().catch(()=>({}));
+  if(!response.ok) throw new Error(result.error||'Email could not be sent. Check your live email setup in Vercel.');
+  return result;
+}
 function channelsFor(a){
   const enabled=state.settings.availableChannels||['WhatsApp','SMS','Email'];
   const preferred=a.preferredChannel && a.preferredChannel!=='auto' ? a.preferredChannel : state.settings.channel;
@@ -174,16 +195,40 @@ function updateStatus(status){
   a.status=status; if(status==='waiting')a.reminderSent=false;
   save(); closeModal('actionModal'); render(); showToast(`Booking marked ${statusLabel(status).toLowerCase()}.`); haptic('success');
 }
-function sendReminder(id, channel=state.settings.channel){
+async function sendReminder(id, channel=state.settings.channel){
   const a=state.appointments.find(x=>x.id===id); if(!a)return;
-  a.reminderSent=true; a.reminderChannel=channel; a.reminderHistory=[...(a.reminderHistory||[]),{channel,at:new Date().toISOString()}];
-  onboarding.reminderSent=true; save(); saveOnboarding(); render(); showToast(`Reminder sent via ${channel} to ${a.client}.`); haptic('success');
+  if(channel==='Email'){
+    showToast(`Sending email to ${a.client}…`);
+    try { await deliverLiveEmail(a); }
+    catch(error){ showToast(error.message||'Email could not be sent.'); haptic(); return; }
+  }
+  a.reminderSent=true;
+  a.reminderChannel=channel;
+  a.reminderHistory=[...(a.reminderHistory||[]),{channel,at:new Date().toISOString(),delivery:channel==='Email'?'live':'demo'}];
+  onboarding.reminderSent=true; save(); saveOnboarding(); render();
+  showToast(channel==='Email' ? `Email reminder sent to ${a.client}.` : `${channel} is in demo mode — the reminder was recorded in Confirmly.`);
+  haptic('success');
 }
-function sendAll(){
+async function sendAll(){
   const due=state.appointments.filter(a=>a.status==='waiting'&&!a.reminderSent);
   if(!due.length){ document.getElementById('newAppointmentBtn').click(); return; }
-  due.forEach(a=>{ const channel=(a.preferredChannel&&a.preferredChannel!=='auto')?a.preferredChannel:state.settings.channel; a.reminderSent=true; a.reminderChannel=channel; a.reminderHistory=[...(a.reminderHistory||[]),{channel,at:new Date().toISOString()}]; });
-  onboarding.reminderSent=true; save(); saveOnboarding(); render(); showToast(`${due.length} reminder${due.length===1?'':'s'} sent using each client’s preferred channel.`); haptic('success');
+  let liveEmails=0, demoChannels=0, failed=0;
+  for(const a of due){
+    const channel=(a.preferredChannel&&a.preferredChannel!=='auto')?a.preferredChannel:state.settings.channel;
+    if(channel==='Email'){
+      try { await deliverLiveEmail(a); liveEmails++; }
+      catch(error){ failed++; continue; }
+    } else { demoChannels++; }
+    a.reminderSent=true;
+    a.reminderChannel=channel;
+    a.reminderHistory=[...(a.reminderHistory||[]),{channel,at:new Date().toISOString(),delivery:channel==='Email'?'live':'demo'}];
+  }
+  if(liveEmails||demoChannels){ onboarding.reminderSent=true; save(); saveOnboarding(); render(); haptic('success'); }
+  const parts=[];
+  if(liveEmails) parts.push(`${liveEmails} email${liveEmails===1?'':'s'} sent`);
+  if(demoChannels) parts.push(`${demoChannels} WhatsApp/SMS reminder${demoChannels===1?'':'s'} recorded in demo mode`);
+  if(failed) parts.push(`${failed} email${failed===1?'':'s'} failed`);
+  showToast(parts.join(' · ')||'No reminders could be sent.');
 }
 function addAppointment(e){
   e.preventDefault(); const fd=new FormData(e.target);
@@ -209,9 +254,9 @@ function bind(){
   document.getElementById('appointmentForm').addEventListener('submit',addAppointment);
   document.getElementById('statusFilter').addEventListener('change',updateAppointmentsTable);
   document.getElementById('searchInput').addEventListener('input',updateAppointmentsTable);
-  document.getElementById('sendAllBtn').addEventListener('click',sendAll);
-  document.getElementById('bannerSendBtn').addEventListener('click',sendAll);
-  document.getElementById('sendAllQueueBtn').addEventListener('click',sendAll);
+  document.getElementById('sendAllBtn').addEventListener('click',()=>{void sendAll();});
+  document.getElementById('bannerSendBtn').addEventListener('click',()=>{void sendAll();});
+  document.getElementById('sendAllQueueBtn').addEventListener('click',()=>{void sendAll();});
   document.getElementById('seedBtn').addEventListener('click',()=>{state=structuredClone(demo);save();render();showToast('Demo bookings restored.');});
   document.getElementById('upgradeBtn').addEventListener('click',()=>showToast('Upgrade checkout would open here.'));
   document.getElementById('mobileMenu').addEventListener('click',()=>document.getElementById('sidebar').classList.toggle('open'));
@@ -230,8 +275,8 @@ function bind(){
   document.addEventListener('click',e=>{
     const guide=e.target.closest('[data-onboarding]'); if(guide){handleOnboarding(guide.dataset.onboarding); return;}
     const actions=e.target.closest('[data-actions]'); if(actions){openActions(actions.dataset.actions); return;}
-    const send=e.target.closest('[data-send]'); if(send){sendReminder(send.dataset.send); return;}
-    const sendChannel=e.target.closest('[data-send-channel]'); if(sendChannel){const [id,channel]=sendChannel.dataset.sendChannel.split('|');sendReminder(id,channel); return;}
+    const send=e.target.closest('[data-send]'); if(send){void sendReminder(send.dataset.send); return;}
+    const sendChannel=e.target.closest('[data-send-channel]'); if(sendChannel){const [id,channel]=sendChannel.dataset.sendChannel.split('|');void sendReminder(id,channel); return;}
     const skip=e.target.closest('[data-skip]'); if(skip){const a=state.appointments.find(x=>x.id===skip.dataset.skip);if(a){a.reminderSent=true;save();render();showToast('Reminder skipped for now.');} return;}
     const update=e.target.closest('[data-update]'); if(update){updateStatus(update.dataset.update); return;}
     const del=e.target.closest('[data-delete]'); if(del){state.appointments=state.appointments.filter(x=>x.id!==del.dataset.delete);save();closeModal('actionModal');render();showToast('Booking deleted.');}

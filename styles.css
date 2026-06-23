@@ -51,3 +51,7 @@ button{touch-action:manipulation}
 }
 @keyframes sheetUp{from{transform:translateY(30px);opacity:.65}to{transform:translateY(0);opacity:1}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+
+
+/* Live email setup card */
+.setup-copy,.setup-note{font-size:13px;line-height:1.55;color:#66736c;margin:0 0 14px}.setup-note{margin:14px 0 0}.live-status{display:flex;gap:10px;align-items:flex-start;padding:13px;border:1px solid #dce8de;background:#f5fbf6;border-radius:14px}.live-status strong{display:block;font-size:13px;color:#234c35}.live-status small{display:block;color:#6a776f;line-height:1.45;margin-top:3px}.live-dot{width:9px;height:9px;flex:0 0 9px;border-radius:50%;background:#258356;margin-top:5px;box-shadow:0 0 0 4px #dcefe2}.live-status code{font-size:11px;background:#e9f4eb;padding:1px 4px;border-radius:4px;color:#214a33}
