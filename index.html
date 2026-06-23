@@ -39,7 +39,7 @@
           <h1 id="pageTitle">Good evening, Alex.</h1>
         </div>
         <div class="top-actions">
-          <button type="button" class="icon-btn install-app-btn hidden" id="installAppBtn" title="Install Confirmly" aria-label="Install Confirmly">⇩</button><button type="button" class="icon-btn" id="refreshAppBtn" title="Refresh app data" aria-label="Refresh app data">↻</button>
+          <button type="button" class="icon-btn install-app-btn hidden" id="installAppBtn" title="Install Confirmly" aria-label="Install Confirmly">⇩</button>
           <button type="button" class="outline-btn" id="sendAllBtn">Send all ready</button>
           <button type="button" class="primary-btn" id="newAppointmentBtn">+ New appointment</button>
         </div>
@@ -72,7 +72,7 @@
       </section>
 
       <section id="appointments" class="view">
-        <div class="section-toolbar"><div><h2>Appointments</h2><p>Manage confirmations, status and outcomes in one place.</p></div><div class="toolbar-controls"><button type="button" class="outline-btn" id="refreshAppointmentsBtn" aria-label="Refresh appointments">↻ Refresh</button><select id="statusFilter"><option value="all">All statuses</option><option value="waiting">Waiting</option><option value="confirmed">Confirmed</option><option value="rescheduled">Rescheduled</option><option value="no-show">No-show</option><option value="cancelled">Cancelled</option></select><input type="search" id="searchInput" placeholder="Search client" /></div></div>
+        <div class="section-toolbar"><div><h2>Appointments</h2><p>Manage confirmations, status and outcomes in one place.</p></div><div class="toolbar-controls"><button type="button" class="danger-outline-btn" id="deleteAllBookingsBtn" aria-label="Delete all bookings">Delete all</button><button type="button" class="outline-btn" id="refreshAppointmentsBtn" aria-label="Refresh appointments">↻ Refresh</button><select id="statusFilter"><option value="all">All statuses</option><option value="waiting">Waiting</option><option value="confirmed">Confirmed</option><option value="rescheduled">Rescheduled</option><option value="no-show">No-show</option><option value="cancelled">Cancelled</option></select><input type="search" id="searchInput" placeholder="Search client" /></div></div>
         <div class="table-panel"><div class="table-scroll"><table><thead><tr><th>Client</th><th>Service</th><th>When</th><th>Value</th><th>Status</th><th></th></tr></thead><tbody id="appointmentsTable"></tbody></table></div></div>
       </section>
 
@@ -129,6 +129,21 @@
     <div class="delete-modal-actions">
       <button type="button" class="outline-btn" id="cancelDeleteBtn">Keep booking</button>
       <button type="button" class="danger-confirm-btn" id="confirmDeleteBtn">Delete booking</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop hidden" id="deleteAllModal">
+  <div class="modal compact delete-modal" role="alertdialog" aria-modal="true" aria-labelledby="deleteAllModalTitle" aria-describedby="deleteAllBookingDetails">
+    <div class="delete-icon" aria-hidden="true">!</div>
+    <p class="eyebrow">DELETE ALL BOOKINGS</p>
+    <h2 id="deleteAllModalTitle">Delete all bookings?</h2>
+    <p class="delete-copy">This will permanently delete <strong id="deleteAllBookingCount">0 bookings</strong> from this workspace.</p>
+    <p class="delete-details" id="deleteAllBookingDetails">Reminder history and booking statuses will be removed too.</p>
+    <p class="delete-copy">This cannot be undone.</p>
+    <div class="delete-modal-actions">
+      <button type="button" class="outline-btn" id="cancelDeleteAllBtn">Keep bookings</button>
+      <button type="button" class="danger-confirm-btn" id="confirmDeleteAllBtn">Delete all bookings</button>
     </div>
   </div>
 </div>

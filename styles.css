@@ -107,3 +107,18 @@ button{touch-action:manipulation}
 .price-card ul{padding:0;margin:16px 0;list-style:none;display:grid;gap:8px;color:#49594f;font-size:12px}.price-card li:before{content:'✓';color:#1c7650;font-weight:700;margin-right:7px}
 .checkout-note{margin:15px 0 0;padding:10px 12px;border-radius:10px;background:#fff7df;color:#725b1b;font-size:12px;line-height:1.45}
 @media(max-width:760px){.account-menu-modal,.upgrade-modal{max-width:none}.pricing-grid{grid-template-columns:1fr}.price-card>p:not(.price){min-height:0}}
+
+
+/* v18: Delete all booking action */
+.danger-outline-btn{border:1px solid #e7bbbb;background:#fff;color:#a84646;border-radius:9px;padding:9px 12px;font:700 12px 'DM Sans';cursor:pointer;min-height:38px;white-space:nowrap}.danger-outline-btn:hover:not(:disabled){background:#fff1f1;border-color:#cf7777}.danger-outline-btn:disabled{opacity:.52;cursor:not-allowed;background:#fafafa;color:#909892;border-color:#e2e5e2}@media(max-width:760px){.toolbar-controls .danger-outline-btn{order:3;width:100%;min-height:42px}.toolbar-controls{flex-wrap:wrap}}
+
+/* v20: Give the live email status and retry action comfortable separation */
+.live-status + #checkEmailStatusBtn{
+  margin-top:16px;
+}
+@media(max-width:760px){
+  .live-status + #checkEmailStatusBtn{
+    margin-top:18px;
+    min-height:42px;
+  }
+}

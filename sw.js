@@ -1,4 +1,4 @@
-const CACHE = 'confirmly-account-plan-v17';
+const CACHE = 'confirmly-live-email-spacing-v20';
 const APP_SHELL = [
   './',
   './index.html',

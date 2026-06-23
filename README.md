@@ -15,3 +15,15 @@ Upload the contents of this folder to the root of your GitHub Confirmly reposito
 ## Note
 
 This is still a prototype plan selector. Selecting Starter or Pro does not charge a card because a Stripe/Lemon Squeezy checkout has not been connected yet.
+
+
+## v18 — Delete all bookings
+- Added an in-app **Delete all** control in Bookings.
+- Uses a confirmation modal, never a browser dialog.
+- Deletes all booking statuses immediately and refreshes dashboard, queue, and booking list.
+
+## v19
+- Removed the duplicate top-bar refresh control. The Appointments toolbar refresh button remains the single booking refresh action.
+
+## v20 – Live email status spacing
+- Added clear vertical spacing between the “Live email is configured” status card and the “Check again” button.

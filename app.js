@@ -29,6 +29,7 @@ let currentQueue = 'due';
 let activeAppointmentId = null;
 let editingAppointmentId = null;
 let pendingDeleteAppointmentId = null;
+let pendingDeleteAllBookings = false;
 
 function readSavedDefaultChannel(){
   try {
@@ -186,6 +187,11 @@ function bindBookingRowActions(){
 }
 
 function updateAppointmentsTable(){
+  const deleteAllButton=document.getElementById('deleteAllBookingsBtn');
+  if(deleteAllButton){
+    deleteAllButton.disabled=state.appointments.length===0;
+    deleteAllButton.textContent=state.appointments.length ? 'Delete all' : 'No bookings';
+  }
   const status=document.getElementById('statusFilter').value;
   const term=document.getElementById('searchInput').value.toLowerCase().trim();
   const rows=sortedAppointments().filter(a=>(status==='all'||a.status===status)&&(`${a.client} ${a.service} ${a.contact}`).toLowerCase().includes(term));
@@ -454,6 +460,32 @@ function requestDeleteAppointment(id){
   requestAnimationFrame(()=>document.getElementById('confirmDeleteBtn')?.focus());
 }
 
+function requestDeleteAllBookings(){
+  const count=state.appointments.length;
+  if(!count){ showToast('There are no bookings to delete.'); return; }
+  pendingDeleteAllBookings=true;
+  const countEl=document.getElementById('deleteAllBookingCount');
+  const detailsEl=document.getElementById('deleteAllBookingDetails');
+  if(countEl) countEl.textContent=`${count} ${count===1?'booking':'bookings'}`;
+  if(detailsEl) detailsEl.textContent=`This will remove every booking, including waiting, confirmed, rescheduled, no-show, and cancelled bookings.`;
+  openModal('deleteAllModal');
+  requestAnimationFrame(()=>document.getElementById('confirmDeleteAllBtn')?.focus());
+}
+
+function confirmDeleteAllBookings(){
+  if(!pendingDeleteAllBookings){ closeModal('deleteAllModal'); return; }
+  const count=state.appointments.length;
+  if(!count){ pendingDeleteAllBookings=false; closeModal('deleteAllModal'); refreshBookingSurfaces(); showToast('There are no bookings to delete.'); return; }
+  state.appointments=[];
+  save();
+  pendingDeleteAllBookings=false;
+  closeModal('deleteAllModal');
+  closeModal('actionModal');
+  refreshBookingSurfaces();
+  showToast(`${count} ${count===1?'booking':'bookings'} deleted.`);
+  haptic('success');
+}
+
 function confirmDeleteAppointment(){
   const id=pendingDeleteAppointmentId;
   const appointment=state.appointments.find(x=>String(x.id)===String(id));
@@ -575,6 +607,10 @@ function bind(){
     refreshBookingSurfaces();
     showToast('Appointments refreshed.');
   });
+  document.getElementById('deleteAllBookingsBtn')?.addEventListener('click',(event)=>{ event.preventDefault(); requestDeleteAllBookings(); });
+  document.getElementById('confirmDeleteAllBtn')?.addEventListener('click',confirmDeleteAllBookings);
+  document.getElementById('cancelDeleteAllBtn')?.addEventListener('click',()=>{pendingDeleteAllBookings=false; closeModal('deleteAllModal');});
+  document.getElementById('deleteAllModal')?.addEventListener('click',event=>{if(event.target===event.currentTarget){pendingDeleteAllBookings=false; closeModal('deleteAllModal');}});
   document.getElementById('checkEmailStatusBtn')?.addEventListener('click',(event)=>{ event.preventDefault(); void refreshEmailStatus(); });
   document.getElementById('refreshAppBtn')?.addEventListener('click',(event)=>{
     event.preventDefault();
