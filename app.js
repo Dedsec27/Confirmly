@@ -846,8 +846,8 @@ function bind(){
     const first=state.settings.reminderFlow.first;
     showToast(`${first.name} · ${flowTiming(first)}: ${messageText(sample)}`);
   });
-  document.getElementById('openGuideBtn').addEventListener('click',startGuide);
-  document.getElementById('skipOnboardingBtn').addEventListener('click',()=>handleOnboarding('skip'));
+  document.getElementById('openGuideBtn')?.addEventListener('click',startGuide);
+  document.getElementById('skipOnboardingBtn')?.addEventListener('click',()=>handleOnboarding('skip'));
   document.addEventListener('click',e=>{
     const guide=e.target.closest('[data-onboarding]'); if(guide){handleOnboarding(guide.dataset.onboarding); return;}
     const viewBooking=e.target.closest('[data-view-booking]'); if(viewBooking){e.preventDefault(); openActions(viewBooking.dataset.viewBooking); return;}

@@ -103,3 +103,9 @@ This is still a prototype plan selector. Selecting Starter or Pro does not charg
 - Removes only the old built-in sample bookings (Sofia, Nikos, Maria, Eleni, Iris, Dimitris, and Anna) once.
 - User-created bookings are preserved.
 - Updated PWA cache version.
+
+
+## v36
+- Fixed two missing optional onboarding controls that could throw a browser runtime error during startup.
+- App now continues loading cleanly whether the onboarding UI is included or not.
+- Updated PWA cache version.

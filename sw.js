@@ -1,4 +1,4 @@
-const CACHE = 'confirmly-start-empty-v32';
+const CACHE = 'confirmly-runtime-safety-v36';
 const APP_SHELL = [
   './',
   './index.html',
