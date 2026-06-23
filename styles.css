@@ -55,3 +55,12 @@ button{touch-action:manipulation}
 
 /* Live email setup card */
 .setup-copy,.setup-note{font-size:13px;line-height:1.55;color:#66736c;margin:0 0 14px}.setup-note{margin:14px 0 0}.live-status{display:flex;gap:10px;align-items:flex-start;padding:13px;border:1px solid #dce8de;background:#f5fbf6;border-radius:14px}.live-status strong{display:block;font-size:13px;color:#234c35}.live-status small{display:block;color:#6a776f;line-height:1.45;margin-top:3px}.live-dot{width:9px;height:9px;flex:0 0 9px;border-radius:50%;background:#258356;margin-top:5px;box-shadow:0 0 0 4px #dcefe2}.live-status code{font-size:11px;background:#e9f4eb;padding:1px 4px;border-radius:4px;color:#214a33}
+
+
+/* v5: Always-visible appointment actions */
+.booking-row-actions{white-space:nowrap;display:flex;justify-content:flex-end;gap:7px;align-items:center}
+.row-action-btn{border:1px solid #dce5dd;background:#fff;color:#2d4036;border-radius:8px;padding:7px 10px;font:600 12px 'DM Sans';cursor:pointer;min-height:32px}
+.row-action-btn:hover{background:#eff8f1;border-color:#a7d4b4}
+.delete-row-btn{color:#a84646;border-color:#f0cdcd}
+.delete-row-btn:hover{background:#fff0f0;border-color:#e6aaaa}
+@media(max-width:760px){.table-scroll td.booking-row-actions{position:absolute;right:9px;top:9px;width:auto;display:flex;gap:5px}.table-scroll td.booking-row-actions .row-action-btn{min-height:36px;padding:7px 9px;font-size:11px}.table-scroll tr{padding-right:122px}}

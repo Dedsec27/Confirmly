@@ -41,3 +41,7 @@ Never put a Resend key in `app.js`, `index.html`, or GitHub. The API key belongs
 - Added Delete booking from every booking action menu, with a confirmation prompt.
 - Reused the booking form for edits and preserves reminder history/status.
 - Service worker cache bumped to v4.
+
+
+## v5 booking actions
+Edit and Delete are now visible directly on every appointment row, rather than hidden behind the three-dot menu.
