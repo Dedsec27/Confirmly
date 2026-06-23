@@ -304,3 +304,272 @@ button{touch-action:manipulation}
 @media(max-width:760px){
   :root[data-theme="dark"] .modal-actions{background:#16211b}
 }
+
+
+/* v22: Monochrome dark mode */
+:root[data-theme="dark"] body,
+:root[data-theme="dark"] .app-shell,
+:root[data-theme="dark"] .main-content{
+  background:#000;
+  color:#fff;
+}
+:root[data-theme="dark"] .sidebar{
+  background:#050505;
+  color:#fff;
+}
+:root[data-theme="dark"] .brand,
+:root[data-theme="dark"] .brand span,
+:root[data-theme="dark"] .nav-item.active,
+:root[data-theme="dark"] .nav-item:hover,
+:root[data-theme="dark"] .nav-item,
+:root[data-theme="dark"] .account strong,
+:root[data-theme="dark"] .account span,
+:root[data-theme="dark"] .more,
+:root[data-theme="dark"] .topbar h1,
+:root[data-theme="dark"] .panel-header h2,
+:root[data-theme="dark"] .section-toolbar h2,
+:root[data-theme="dark"] .client-cell strong,
+:root[data-theme="dark"] .client-name,
+:root[data-theme="dark"] .row-value,
+:root[data-theme="dark"] .legend strong,
+:root[data-theme="dark"] .message-card strong,
+:root[data-theme="dark"] .setting-panel h3,
+:root[data-theme="dark"] .modal-header h2,
+:root[data-theme="dark"] .account-menu-item strong,
+:root[data-theme="dark"] .price-card h3,
+:root[data-theme="dark"] .delete-modal h2{
+  color:#fff;
+}
+:root[data-theme="dark"] .eyebrow,
+:root[data-theme="dark"] .metric-label,
+:root[data-theme="dark"] .metric-card small,
+:root[data-theme="dark"] .panel-header p,
+:root[data-theme="dark"] .section-toolbar p,
+:root[data-theme="dark"] .service-name,
+:root[data-theme="dark"] .client-cell span,
+:root[data-theme="dark"] .legend,
+:root[data-theme="dark"] .message-card .message-meta,
+:root[data-theme="dark"] .message-copy,
+:root[data-theme="dark"] .setting-panel label,
+:root[data-theme="dark"] .form-grid label,
+:root[data-theme="dark"] .delete-copy,
+:root[data-theme="dark"] .delete-details,
+:root[data-theme="dark"] .account-menu-subtitle,
+:root[data-theme="dark"] .upgrade-subtitle,
+:root[data-theme="dark"] .price span,
+:root[data-theme="dark"] .price-card > p,
+:root[data-theme="dark"] .price-card li,
+:root[data-theme="dark"] .setup-copy,
+:root[data-theme="dark"] .setup-note,
+:root[data-theme="dark"] .live-status small,
+:root[data-theme="dark"] .flow-step p,
+:root[data-theme="dark"] .tiny-label,
+:root[data-theme="dark"] .empty-state span{
+  color:#bdbdbd;
+}
+:root[data-theme="dark"] .trial-card,
+:root[data-theme="dark"] .metric-card,
+:root[data-theme="dark"] .panel,
+:root[data-theme="dark"] .table-panel,
+:root[data-theme="dark"] .modal,
+:root[data-theme="dark"] .onboarding-modal,
+:root[data-theme="dark"] .account-menu-item,
+:root[data-theme="dark"] .price-card,
+:root[data-theme="dark"] .message-copy,
+:root[data-theme="dark"] .live-status,
+:root[data-theme="dark"] .channel-option,
+:root[data-theme="dark"] .mini-tip,
+:root[data-theme="dark"] .delete-details,
+:root[data-theme="dark"] .time-block,
+:root[data-theme="dark"] .account-menu-icon,
+:root[data-theme="dark"] .mobile-bottom-nav,
+:root[data-theme="dark"] .ios-install-banner{
+  background:#0c0c0c;
+  border-color:#2c2c2c;
+  color:#fff;
+  box-shadow:none;
+}
+:root[data-theme="dark"] .insight-banner{
+  background:#101010;
+  border-color:#2f2f2f;
+}
+:root[data-theme="dark"] .insight-banner strong,
+:root[data-theme="dark"] .insight-banner p{
+  color:#fff;
+}
+:root[data-theme="dark"] .pulse-dot{
+  background:#fff;
+  box-shadow:0 0 0 4px rgba(255,255,255,.12);
+}
+:root[data-theme="dark"] th{
+  background:#101010;
+  color:#b5b5b5;
+}
+:root[data-theme="dark"] td,
+:root[data-theme="dark"] th,
+:root[data-theme="dark"] .appointment-row,
+:root[data-theme="dark"] .message-card,
+:root[data-theme="dark"] .queue-tabs,
+:root[data-theme="dark"] .account,
+:root[data-theme="dark"] .table-scroll tr,
+:root[data-theme="dark"] .flow-line,
+:root[data-theme="dark"] .checkout-note,
+:root[data-theme="dark"] .onboarding-highlight{
+  border-color:#262626;
+}
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] textarea,
+:root[data-theme="dark"] .outline-btn,
+:root[data-theme="dark"] .ghost-btn,
+:root[data-theme="dark"] .icon-btn,
+:root[data-theme="dark"] .small-btn,
+:root[data-theme="dark"] .channel-send,
+:root[data-theme="dark"] .row-action-btn,
+:root[data-theme="dark"] .danger-outline-btn,
+:root[data-theme="dark"] .close-btn,
+:root[data-theme="dark"] .action-option,
+:root[data-theme="dark"] .mobile-menu,
+:root[data-theme="dark"] .text-btn{
+  background:#111;
+  border-color:#3a3a3a;
+  color:#fff;
+}
+:root[data-theme="dark"] input::placeholder,
+:root[data-theme="dark"] textarea::placeholder{
+  color:#8f8f8f;
+}
+:root[data-theme="dark"] .primary-btn,
+:root[data-theme="dark"] .dark-btn,
+:root[data-theme="dark"] .send-btn{
+  background:#fff;
+  border:1px solid #fff;
+  color:#000;
+  box-shadow:none;
+}
+:root[data-theme="dark"] .primary-btn:hover,
+:root[data-theme="dark"] .dark-btn:hover,
+:root[data-theme="dark"] .send-btn:hover{
+  background:#e8e8e8;
+  border-color:#e8e8e8;
+}
+:root[data-theme="dark"] .outline-btn:hover,
+:root[data-theme="dark"] .ghost-btn:hover,
+:root[data-theme="dark"] .icon-btn:hover,
+:root[data-theme="dark"] .small-btn:hover,
+:root[data-theme="dark"] .channel-send:hover,
+:root[data-theme="dark"] .row-action-btn:hover,
+:root[data-theme="dark"] .danger-outline-btn:hover:not(:disabled),
+:root[data-theme="dark"] .action-option:hover,
+:root[data-theme="dark"] .account-menu-item:hover,
+:root[data-theme="dark"] .account-menu-item:focus-visible,
+:root[data-theme="dark"] .nav-item.active,
+:root[data-theme="dark"] .nav-item:hover,
+:root[data-theme="dark"] .mobile-nav-item.active span{
+  background:#1a1a1a;
+}
+:root[data-theme="dark"] .brand-mark,
+:root[data-theme="dark"] .avatar{
+  background:#fff;
+  color:#000;
+}
+:root[data-theme="dark"] .metric-icon,
+:root[data-theme="dark"] .flow-step>span,
+:root[data-theme="dark"] .badge,
+:root[data-theme="dark"] .queue-tab span,
+:root[data-theme="dark"] .channel-badge{
+  background:#1a1a1a;
+  color:#fff;
+}
+:root[data-theme="dark"] .mint,
+:root[data-theme="dark"] .lilac,
+:root[data-theme="dark"] .amber,
+:root[data-theme="dark"] .rose{
+  background:#1a1a1a;
+  color:#fff;
+}
+:root[data-theme="dark"] .status.confirmed{
+  background:#fff;
+  color:#000;
+}
+:root[data-theme="dark"] .status.waiting{
+  background:#d0d0d0;
+  color:#000;
+}
+:root[data-theme="dark"] .status.rescheduled{
+  background:#8f8f8f;
+  color:#000;
+}
+:root[data-theme="dark"] .status.no-show{
+  background:#5e5e5e;
+  color:#fff;
+}
+:root[data-theme="dark"] .status.cancelled{
+  background:#222;
+  color:#cfcfcf;
+}
+:root[data-theme="dark"] .badge.positive,
+:root[data-theme="dark"] .badge.warning{
+  background:#1a1a1a;
+  color:#fff;
+}
+:root[data-theme="dark"] .legend-dot.confirmed,
+:root[data-theme="dark"] .legend-dot.waiting,
+:root[data-theme="dark"] .legend-dot.no-show{
+  background:#fff;
+}
+:root[data-theme="dark"] .progress-ring:before,
+:root[data-theme="dark"] .ring-center{
+  background:#0c0c0c;
+  color:#fff;
+}
+:root[data-theme="dark"] .toast{
+  background:#fff;
+  color:#000;
+}
+:root[data-theme="dark"] .delivery-note,
+:root[data-theme="dark"] .email-warning,
+:root[data-theme="dark"] .checkout-note{
+  background:#111;
+  color:#d8d8d8;
+  border-color:#333;
+}
+:root[data-theme="dark"] .email-warning.error{
+  background:#161616;
+  color:#f0f0f0;
+  border-color:#444;
+}
+:root[data-theme="dark"] .delete-icon{
+  background:#111;
+  border-color:#333;
+  color:#fff;
+}
+:root[data-theme="dark"] .danger-confirm-btn{
+  background:#fff;
+  border-color:#fff;
+  color:#000;
+}
+:root[data-theme="dark"] .danger-confirm-btn:hover{
+  background:#e8e8e8;
+}
+:root[data-theme="dark"] .live-dot{
+  background:#fff;
+  box-shadow:0 0 0 4px rgba(255,255,255,.08);
+}
+:root[data-theme="dark"] .modal-backdrop{
+  background:rgba(0,0,0,.78);
+}
+:root[data-theme="dark"] .more,
+:root[data-theme="dark"] .row-menu{
+  color:#fff;
+}
+:root[data-theme="dark"] .row-menu,
+:root[data-theme="dark"] .appointment-row .row-menu{
+  background:#111;
+}
+@media(max-width:760px){
+  :root[data-theme="dark"] .modal-actions,
+  :root[data-theme="dark"] .mobile-bottom-nav{
+    background:#0a0a0a;
+  }
+}

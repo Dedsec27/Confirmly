@@ -1,4 +1,4 @@
-const CACHE = 'confirmly-dark-mode-v21';
+const CACHE = 'confirmly-monochrome-dark-v22';
 const APP_SHELL = [
   './',
   './index.html',

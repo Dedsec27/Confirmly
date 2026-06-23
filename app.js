@@ -161,7 +161,9 @@ function updateDashboard(){
   document.getElementById('confirmedCount').textContent=confirmed;
   document.getElementById('waitingCount').textContent=waiting;
   document.getElementById('noShowCount').textContent=noShows;
-  document.getElementById('progressRing').style.background=`conic-gradient(#258356 ${rate*3.6}deg,#edf1ed ${rate*3.6}deg)`;
+  const ringActive = state.settings.theme==='dark' ? '#ffffff' : '#258356';
+  const ringRest = state.settings.theme==='dark' ? '#2a2a2a' : '#edf1ed';
+  document.getElementById('progressRing').style.background=`conic-gradient(${ringActive} ${rate*3.6}deg,${ringRest} ${rate*3.6}deg)`;
   const health=document.getElementById('healthBadge');
   health.textContent=rate>=70?'Looking good':rate>=40?'Needs attention':'Send reminders';
   health.className=`badge ${rate>=70?'positive':'warning'}`;

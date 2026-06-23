@@ -33,3 +33,9 @@ This is still a prototype plan selector. Selecting Starter or Pro does not charg
 - Added a dark mode option in Settings.
 - The selected theme is saved locally and restored on reload.
 - Service worker cache bumped so installed apps receive the update.
+
+
+## v22
+- Refined dark mode into a monochrome black-and-white theme.
+- Removed green accent styling while dark mode is active.
+- Updated the confirmation ring to render in white/gray in dark mode.
