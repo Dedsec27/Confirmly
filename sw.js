@@ -1,5 +1,5 @@
-const CACHE = 'confirmly-live-email-v1';
-const ASSETS = [
+const CACHE = 'confirmly-live-email-v2';
+const APP_SHELL = [
   './',
   './index.html',
   './styles.css',
@@ -10,7 +10,7 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)));
+  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(APP_SHELL)));
   self.skipWaiting();
 });
 
@@ -21,9 +21,23 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
-  event.respondWith(caches.match(event.request).then(cached => cached || fetch(event.request).then(response => {
+  const request = event.request;
+  const isNavigation = request.mode === 'navigate';
+  const isAppAsset = /\/(index\.html|styles\.css|app\.js|manifest\.webmanifest)$/.test(new URL(request.url).pathname);
+
+  // Network-first for the page and core files prevents installed apps from being stuck on an old deployment.
+  if (isNavigation || isAppAsset) {
+    event.respondWith(fetch(request).then(response => {
+      const copy = response.clone();
+      caches.open(CACHE).then(cache => cache.put(request, copy));
+      return response;
+    }).catch(() => caches.match(request).then(cached => cached || caches.match('./index.html'))));
+    return;
+  }
+
+  event.respondWith(caches.match(request).then(cached => cached || fetch(request).then(response => {
     const copy = response.clone();
-    caches.open(CACHE).then(cache => cache.put(event.request, copy));
+    caches.open(CACHE).then(cache => cache.put(request, copy));
     return response;
-  }).catch(() => caches.match('./index.html'))));
+  })));
 });

@@ -1,4 +1,4 @@
-# Confirmly — live email test build
+# Confirmly — live email test build (QA-fixed)
 
 Confirmly is a mobile-first appointment confirmation and no-show prevention app for service businesses.
 
@@ -6,7 +6,7 @@ Confirmly is a mobile-first appointment confirmation and no-show prevention app 
 
 - Appointment and reminder management stored in the device browser
 - Live **email** reminders through Resend and a Vercel serverless endpoint
-- WhatsApp and SMS are clearly marked as demo-only until their providers are added
+- WhatsApp and SMS are clearly marked as demo-only until their providers are added; the reminder queue is manual in this build
 - iOS and Android PWA installation support
 
 ## Set up one real email test

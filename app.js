@@ -1,15 +1,19 @@
 const storageKey = 'confirmly_mvp_v2';
 const onboardingKey = 'confirmly_onboarding_v2';
-const todayISO = new Date().toISOString().slice(0,10);
+function localISODate(date = new Date()) {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+}
 
-function shiftDate(days){ const d=new Date(); d.setDate(d.getDate()+days); return d.toISOString().slice(0,10); }
+function todayISO() { return localISODate(); }
+function shiftDate(days) { const d = new Date(); d.setDate(d.getDate() + days); return localISODate(d); }
 const demo = {
   settings:{businessName:'Atlas Studio',channel:'WhatsApp',availableChannels:['WhatsApp','SMS','Email'],defaultValue:60,message48:'Hi {first_name}, just a quick reminder about your {service} appointment on {date} at {time}. Tap below to confirm or reschedule.',message4:'Hi {first_name}, we’re looking forward to seeing you at {time} today. Please confirm your appointment.'},
   appointments:[
-    {id:'a1',client:'Sofia Petrou',contact:'+30 694 111 2233',service:'Colour + cut',date:todayISO,time:'10:30',value:85,status:'confirmed',notes:'Prefers subtle warm tones.',reminderSent:true},
-    {id:'a2',client:'Nikos Vassiliou',contact:'+30 697 345 6655',service:'Beard trim',date:todayISO,time:'12:15',value:30,status:'waiting',notes:'',reminderSent:false},
-    {id:'a3',client:'Maria Georgiou',contact:'+30 699 877 2011',service:'Full styling',date:todayISO,time:'15:00',value:70,status:'waiting',notes:'New client.',reminderSent:false},
-    {id:'a4',client:'Eleni Markou',contact:'+30 693 221 8811',service:'Haircut',date:todayISO,time:'17:30',value:45,status:'waiting',notes:'',reminderSent:false},
+    {id:'a1',client:'Sofia Petrou',contact:'+30 694 111 2233',service:'Colour + cut',date:todayISO(),time:'10:30',value:85,status:'confirmed',notes:'Prefers subtle warm tones.',reminderSent:true},
+    {id:'a2',client:'Nikos Vassiliou',contact:'+30 697 345 6655',service:'Beard trim',date:todayISO(),time:'12:15',value:30,status:'waiting',notes:'',reminderSent:false},
+    {id:'a3',client:'Maria Georgiou',contact:'+30 699 877 2011',service:'Full styling',date:todayISO(),time:'15:00',value:70,status:'waiting',notes:'New client.',reminderSent:false},
+    {id:'a4',client:'Eleni Markou',contact:'+30 693 221 8811',service:'Haircut',date:todayISO(),time:'17:30',value:45,status:'waiting',notes:'',reminderSent:false},
     {id:'a5',client:'Iris Kosta',contact:'iris@example.com',service:'Bridal trial',date:shiftDate(-1),time:'11:00',value:130,status:'rescheduled',notes:'Moved to Friday.',reminderSent:true},
     {id:'a6',client:'Dimitris Aris',contact:'+30 698 777 3333',service:'Haircut',date:shiftDate(-2),time:'14:00',value:40,status:'no-show',notes:'Follow-up recovery sent.',reminderSent:true},
     {id:'a7',client:'Anna Papas',contact:'+30 695 010 2323',service:'Colour refresh',date:shiftDate(-3),time:'16:30',value:75,status:'confirmed',notes:'',reminderSent:true}
@@ -25,7 +29,7 @@ function normaliseState(data){
   const next=data||structuredClone(demo);
   next.settings={...structuredClone(demo.settings),...(next.settings||{})};
   if(!Array.isArray(next.settings.availableChannels)||!next.settings.availableChannels.length) next.settings.availableChannels=['WhatsApp','SMS','Email'];
-  next.appointments=(next.appointments||[]).map(a=>({preferredChannel:'auto', reminderChannel:null, reminderHistory:[], ...a}));
+  next.appointments=(next.appointments||[]).map(a=>({preferredChannel:'auto', reminderChannel:null, reminderHistory:[], reminderSkipped:false, ...a}));
   return next;
 }
 function load(){
@@ -42,7 +46,7 @@ function prettyDate(date){ return new Intl.DateTimeFormat('en-GB',{weekday:'shor
 function statusLabel(s){ return s==='no-show'?'No-show':s.charAt(0).toUpperCase()+s.slice(1); }
 function dateTimeValue(a){ return new Date(`${a.date}T${a.time||'00:00'}`).getTime(); }
 function sortedAppointments(){ return [...state.appointments].sort((a,b)=>dateTimeValue(a)-dateTimeValue(b)); }
-function isToday(a){ return a.date===todayISO; }
+function isToday(a){ return a.date===todayISO(); }
 function escapeHtml(v){ return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
 function showToast(text){ const t=document.getElementById('toast'); t.textContent=text; t.classList.add('show'); clearTimeout(showToast.timer); showToast.timer=setTimeout(()=>t.classList.remove('show'),2800); }
 function openModal(id){ document.getElementById(id).classList.remove('hidden'); document.body.classList.add('modal-open'); }
@@ -55,7 +59,7 @@ function updateDashboard(){
   const noShows=apps.filter(a=>a.status==='no-show').length;
   const rescheduled=apps.filter(a=>a.status==='rescheduled').length;
   const totalOutcome=apps.filter(a=>['confirmed','waiting','rescheduled','no-show'].includes(a.status)).length;
-  const rate=totalOutcome?Math.round((confirmed/(confirmed+waiting+rescheduled||1))*100):0;
+  const rate=totalOutcome?Math.round((confirmed / totalOutcome) * 100):0;
   const noRate=totalOutcome?Math.round(noShows/totalOutcome*100):0;
   const protectedRevenue=apps.filter(a=>['confirmed','rescheduled'].includes(a.status)).reduce((s,a)=>s+Number(a.value||0),0);
   document.getElementById('confirmationRate').textContent=`${rate}%`;
@@ -73,7 +77,7 @@ function updateDashboard(){
   health.textContent=rate>=70?'Looking good':rate>=40?'Needs attention':'Send reminders';
   health.className=`badge ${rate>=70?'positive':'warning'}`;
 
-  const due=apps.filter(a=>a.status==='waiting'&&!a.reminderSent);
+  const due=apps.filter(a=>a.status==='waiting'&&!a.reminderSent&&!a.reminderSkipped);
   document.querySelector('.insight-banner strong').textContent=due.length?`${due.length} client${due.length===1?'':'s'} still need confirmation.`:'Your reminder queue is clear.';
   document.getElementById('bannerCopy').textContent=due.length?`Send ${due.length===1?'a reminder':'reminders'} now to protect an estimated ${money(due.reduce((s,a)=>s+Number(a.value||0),0))}.`:'Add a new booking whenever an appointment is made.';
   document.getElementById('bannerSendBtn').textContent=due.length?`Send via ${state.settings.channel}`:'Add booking';
@@ -100,7 +104,13 @@ function updateAppointmentsTable(){
   document.getElementById('appointmentsTable').innerHTML=rows.length?rows.map(a=>`<tr><td class="client-cell"><strong>${escapeHtml(a.client)}</strong><span>${escapeHtml(a.contact)}</span></td><td data-label="Service">${escapeHtml(a.service)}</td><td data-label="When"><strong>${prettyDate(a.date)}</strong><span style="color:#7b8680;font-size:11px">${a.time}</span></td><td data-label="Value">${money(a.value)}</td><td data-label="Status"><span class="status ${a.status}">${statusLabel(a.status)}</span></td><td><button class="row-menu" aria-label="Update ${escapeHtml(a.client)}" data-actions="${a.id}">⋮</button></td></tr>`).join(''):`<tr><td colspan="6"><div class="empty-state"><strong>No bookings found</strong><span>Try a different filter or add a new booking.</span></div></td></tr>`;
 }
 
-function messageText(a){ return state.settings.message48.replace('{first_name}',a.client.split(' ')[0]).replace('{service}',a.service).replace('{date}',prettyDate(a.date)).replace('{time}',a.time); }
+function messageText(a){
+  return state.settings.message48
+    .replaceAll('{first_name}', a.client.split(' ')[0])
+    .replaceAll('{service}', a.service)
+    .replaceAll('{date}', prettyDate(a.date))
+    .replaceAll('{time}', a.time);
+}
 function isEmailAddress(value){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value||'').trim()); }
 async function deliverLiveEmail(a){
   const to=String(a.contact||'').trim();
@@ -122,10 +132,15 @@ async function deliverLiveEmail(a){
   if(!response.ok) throw new Error(result.error||'Email could not be sent. Check your live email setup in Vercel.');
   return result;
 }
+function resolvedChannel(a){
+  const enabled = state.settings.availableChannels || ['WhatsApp','SMS','Email'];
+  const requested = a.preferredChannel && a.preferredChannel !== 'auto' ? a.preferredChannel : state.settings.channel;
+  return enabled.includes(requested) ? requested : enabled[0];
+}
 function channelsFor(a){
-  const enabled=state.settings.availableChannels||['WhatsApp','SMS','Email'];
-  const preferred=a.preferredChannel && a.preferredChannel!=='auto' ? a.preferredChannel : state.settings.channel;
-  return [preferred,...enabled.filter(ch=>ch!==preferred)];
+  const enabled = state.settings.availableChannels || ['WhatsApp','SMS','Email'];
+  const preferred = resolvedChannel(a);
+  return [preferred, ...enabled.filter(ch => ch !== preferred)];
 }
 function channelActionLabel(channel){ return channel==='WhatsApp'?'WhatsApp':channel==='SMS'?'SMS':'Email'; }
 function updateMessages(){
@@ -136,7 +151,7 @@ function updateMessages(){
   const source=currentQueue==='due'?due:sent;
   const holder=document.getElementById('messageQueue');
   holder.innerHTML=source.length?source.map(a=>{
-    const channel=a.reminderChannel || (a.preferredChannel && a.preferredChannel!=='auto'?a.preferredChannel:state.settings.channel);
+    const channel=a.reminderChannel || resolvedChannel(a);
     const choices=channelsFor(a).map(ch=>`<button class="channel-send ${ch===channel?'primary-channel':''}" data-send-channel="${a.id}|${ch}">${channelActionLabel(ch)}</button>`).join('');
     return `<article class="message-card"><div class="message-card-top"><div><strong>${escapeHtml(a.client)}</strong><div class="message-meta">${escapeHtml(a.service)} · ${prettyDate(a.date)} at ${a.time} ${a.reminderSent?`<span class="channel-badge">Sent via ${escapeHtml(channel)}</span>`:''}</div></div><span class="status ${a.reminderSent?'confirmed':'waiting'}">${a.reminderSent?'Sent':'Ready'}</span></div><div class="message-copy">${escapeHtml(messageText(a))}</div>${!a.reminderSent?`<div class="channel-picker"><span>Send via</span>${choices}</div><div class="message-actions"><button class="small-btn skip-btn" data-skip="${a.id}">Skip for now</button></div>`:`<div class="message-actions"><button class="small-btn skip-btn" data-actions="${a.id}">View booking</button></div>`}</article>`;
   }).join(''):`<div class="empty-state"><strong>${currentQueue==='due'?'No reminders ready to send':'No sent reminders yet'}</strong><span>${currentQueue==='due'?'Nice — everyone has been contacted.':'Send a reminder to see it here.'}</span></div>`;
@@ -179,7 +194,7 @@ function handleOnboarding(action){
   }
   if(action==='add-booking'){
     onboarding.bookingAdded=true; onboarding.completed=true; saveOnboarding(); closeModal('onboardingModal');
-    document.querySelector('[name="date"]').value=todayISO; document.querySelector('[name="value"]').value=state.settings.defaultValue; openModal('appointmentModal');
+    document.querySelector('[name="date"]').value=todayISO(); document.querySelector('[name="value"]').value=state.settings.defaultValue; openModal('appointmentModal');
   }
 }
 
@@ -187,22 +202,25 @@ function openActions(id){
   const a=state.appointments.find(x=>x.id===id); if(!a)return;
   activeAppointmentId=id;
   document.getElementById('actionTitle').textContent=a.client;
-  document.getElementById('actionContent').innerHTML=`<div class="message-copy"><strong>${escapeHtml(a.service)}</strong><br>${prettyDate(a.date)} at ${a.time} · ${money(a.value)}</div><p style="font-size:12px;color:#6f7a74;margin:0 0 12px">Choose what happened with this booking.</p><div class="action-list">${a.status==='waiting'?'<button class="action-option" data-update="confirmed">✓ Client confirmed</button><button class="action-option" data-update="rescheduled">↗ Client rescheduled</button><button class="action-option danger" data-update="no-show">! Client did not show up</button><button class="action-option" data-update="cancelled">× Cancel booking</button>':`<button class="action-option" data-update="waiting">↺ Move back to waiting</button><button class="action-option danger" data-delete="${a.id}">Delete booking</button>`}</div>`;
+  document.getElementById('actionContent').innerHTML=`<div class="message-copy"><strong>${escapeHtml(a.service)}</strong><br>${prettyDate(a.date)} at ${a.time} · ${money(a.value)}</div><p style="font-size:12px;color:#6f7a74;margin:0 0 12px">Choose what happened with this booking.</p><div class="action-list">${a.status==='waiting'?'<button class="action-option" data-update="confirmed">✓ Client confirmed</button><button class="action-option" data-update="rescheduled">↗ Client rescheduled</button><button class="action-option danger" data-update="no-show">! Client did not show up</button><button class="action-option" data-requeue="${a.id}">↻ Re-queue reminder</button><button class="action-option" data-update="cancelled">× Cancel booking</button>':`<button class="action-option" data-update="waiting">↺ Move back to waiting</button><button class="action-option danger" data-delete="${a.id}">Delete booking</button>`}</div>`;
   openModal('actionModal');
 }
 function updateStatus(status){
   const a=state.appointments.find(x=>x.id===activeAppointmentId); if(!a)return;
-  a.status=status; if(status==='waiting')a.reminderSent=false;
+  a.status=status; if(status==='waiting'){ a.reminderSent=false; a.reminderSkipped=false; }
   save(); closeModal('actionModal'); render(); showToast(`Booking marked ${statusLabel(status).toLowerCase()}.`); haptic('success');
 }
+let isSending = false;
 async function sendReminder(id, channel=state.settings.channel){
   const a=state.appointments.find(x=>x.id===id); if(!a)return;
+  if(!(state.settings.availableChannels||[]).includes(channel)){ showToast(`${channel} is disabled in Settings.`); return; }
   if(channel==='Email'){
     showToast(`Sending email to ${a.client}…`);
     try { await deliverLiveEmail(a); }
     catch(error){ showToast(error.message||'Email could not be sent.'); haptic(); return; }
   }
   a.reminderSent=true;
+  a.reminderSkipped=false;
   a.reminderChannel=channel;
   a.reminderHistory=[...(a.reminderHistory||[]),{channel,at:new Date().toISOString(),delivery:channel==='Email'?'live':'demo'}];
   onboarding.reminderSent=true; save(); saveOnboarding(); render();
@@ -210,35 +228,64 @@ async function sendReminder(id, channel=state.settings.channel){
   haptic('success');
 }
 async function sendAll(){
-  const due=state.appointments.filter(a=>a.status==='waiting'&&!a.reminderSent);
+  if (isSending) return;
+  const due=state.appointments.filter(a=>a.status==='waiting'&&!a.reminderSent&&!a.reminderSkipped);
   if(!due.length){ document.getElementById('newAppointmentBtn').click(); return; }
-  let liveEmails=0, demoChannels=0, failed=0;
-  for(const a of due){
-    const channel=(a.preferredChannel&&a.preferredChannel!=='auto')?a.preferredChannel:state.settings.channel;
-    if(channel==='Email'){
-      try { await deliverLiveEmail(a); liveEmails++; }
-      catch(error){ failed++; continue; }
-    } else { demoChannels++; }
-    a.reminderSent=true;
-    a.reminderChannel=channel;
-    a.reminderHistory=[...(a.reminderHistory||[]),{channel,at:new Date().toISOString(),delivery:channel==='Email'?'live':'demo'}];
+  isSending=true;
+  document.querySelectorAll('#sendAllBtn,#bannerSendBtn,#sendAllQueueBtn').forEach(btn=>btn.disabled=true);
+  try {
+    let liveEmails=0, demoChannels=0, failed=0;
+    for(const a of due){
+      const channel=resolvedChannel(a);
+      if(channel==='Email'){
+        try { await deliverLiveEmail(a); liveEmails++; }
+        catch(error){ failed++; continue; }
+      } else { demoChannels++; }
+      a.reminderSent=true;
+      a.reminderSkipped=false;
+      a.reminderChannel=channel;
+      a.reminderHistory=[...(a.reminderHistory||[]),{channel,at:new Date().toISOString(),delivery:channel==='Email'?'live':'demo'}];
+    }
+    if(liveEmails||demoChannels){ onboarding.reminderSent=true; save(); saveOnboarding(); render(); haptic('success'); }
+    const parts=[];
+    if(liveEmails) parts.push(`${liveEmails} email${liveEmails===1?'':'s'} sent`);
+    if(demoChannels) parts.push(`${demoChannels} WhatsApp/SMS reminder${demoChannels===1?'':'s'} recorded in demo mode`);
+    if(failed) parts.push(`${failed} email${failed===1?'':'s'} failed`);
+    showToast(parts.join(' · ')||'No reminders could be sent.');
+  } finally {
+    isSending=false;
+    document.querySelectorAll('#sendAllBtn,#bannerSendBtn,#sendAllQueueBtn').forEach(btn=>btn.disabled=false);
   }
-  if(liveEmails||demoChannels){ onboarding.reminderSent=true; save(); saveOnboarding(); render(); haptic('success'); }
-  const parts=[];
-  if(liveEmails) parts.push(`${liveEmails} email${liveEmails===1?'':'s'} sent`);
-  if(demoChannels) parts.push(`${demoChannels} WhatsApp/SMS reminder${demoChannels===1?'':'s'} recorded in demo mode`);
-  if(failed) parts.push(`${failed} email${failed===1?'':'s'} failed`);
-  showToast(parts.join(' · ')||'No reminders could be sent.');
 }
 function addAppointment(e){
   e.preventDefault(); const fd=new FormData(e.target);
-  state.appointments.push({id:crypto.randomUUID(),client:fd.get('client').trim(),contact:fd.get('contact').trim(),service:fd.get('service').trim(),value:Number(fd.get('value')),date:fd.get('date'),time:fd.get('time'),notes:fd.get('notes').trim(),preferredChannel:fd.get('preferredChannel')||'auto',reminderChannel:null,reminderHistory:[],status:'waiting',reminderSent:false});
+  state.appointments.push({id:crypto.randomUUID(),client:fd.get('client').trim(),contact:fd.get('contact').trim(),service:fd.get('service').trim(),value:Number(fd.get('value')),date:fd.get('date'),time:fd.get('time'),notes:fd.get('notes').trim(),preferredChannel:fd.get('preferredChannel')||'auto',reminderChannel:null,reminderHistory:[],reminderSkipped:false,status:'waiting',reminderSent:false});
   onboarding.bookingAdded=true; save(); saveOnboarding(); e.target.reset(); closeModal('appointmentModal'); render(); showToast('Booking added. It is now ready for a reminder.');
 }
 
 function goToView(view){
   const nav=document.querySelector(`[data-view="${view}"]`); if(nav) nav.click();
 }
+async function refreshEmailStatus(){
+  const title = document.getElementById('emailStatusTitle');
+  const copy = document.getElementById('emailStatusCopy');
+  if (!title || !copy) return;
+  try {
+    const response = await fetch('/api/send-reminder', { headers: { 'Accept': 'application/json' } });
+    const result = await response.json().catch(() => ({}));
+    if (response.ok && result.configured) {
+      title.textContent = 'Live email is configured';
+      copy.textContent = result.testMode ? 'Test mode is on: email can only be sent to your configured test address.' : 'Email reminders can now be sent from this project.';
+    } else {
+      title.textContent = 'Email needs setup';
+      copy.textContent = result.error || 'Add RESEND_API_KEY and RESEND_FROM_EMAIL in Vercel, then redeploy.';
+    }
+  } catch {
+    title.textContent = 'Email status unavailable';
+    copy.textContent = 'Check that this app is deployed on Vercel, then refresh.';
+  }
+}
+
 function bind(){
   document.querySelectorAll('.nav-item').forEach(btn=>btn.addEventListener('click',()=>{
     const view=btn.dataset.view;
@@ -249,7 +296,7 @@ function bind(){
     document.getElementById('pageTitle').textContent=titles[view]; document.getElementById('pageEyebrow').textContent=eyebrows[view]; document.getElementById('sidebar').classList.remove('open'); setMobileView(view); haptic();
   }));
   document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>goToView(b.dataset.go)));
-  document.getElementById('newAppointmentBtn').addEventListener('click',()=>{document.querySelector('[name="date"]').value=todayISO;document.querySelector('[name="value"]').value=state.settings.defaultValue;document.querySelector('[name="preferredChannel"]').value='auto';openModal('appointmentModal')});
+  document.getElementById('newAppointmentBtn').addEventListener('click',()=>{document.querySelector('[name="date"]').value=todayISO();document.querySelector('[name="value"]').value=state.settings.defaultValue;document.querySelector('[name="preferredChannel"]').value='auto';openModal('appointmentModal')});
   document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal(b.dataset.close)));
   document.getElementById('appointmentForm').addEventListener('submit',addAppointment);
   document.getElementById('statusFilter').addEventListener('change',updateAppointmentsTable);
@@ -269,7 +316,7 @@ function bind(){
     state.settings.channel=enabled.includes(document.getElementById('channel').value)?document.getElementById('channel').value:enabled[0];
     state.settings.defaultValue=Number(document.getElementById('defaultValue').value||0);state.settings.message48=document.getElementById('message48').value;state.settings.message4=document.getElementById('message4').value;onboarding.detailsSet=true;save();saveOnboarding();render();showToast('Channels and settings saved.');
   });
-  document.getElementById('previewTemplateBtn').addEventListener('click',()=>{const sample={client:'Sofia Petrou',service:'Haircut',date:todayISO,time:'15:00'};showToast(messageText(sample));});
+  document.getElementById('previewTemplateBtn').addEventListener('click',()=>{const sample={client:'Sofia Petrou',service:'Haircut',date:todayISO(),time:'15:00'};showToast(messageText(sample));});
   document.getElementById('openGuideBtn').addEventListener('click',startGuide);
   document.getElementById('skipOnboardingBtn').addEventListener('click',()=>handleOnboarding('skip'));
   document.addEventListener('click',e=>{
@@ -277,7 +324,8 @@ function bind(){
     const actions=e.target.closest('[data-actions]'); if(actions){openActions(actions.dataset.actions); return;}
     const send=e.target.closest('[data-send]'); if(send){void sendReminder(send.dataset.send); return;}
     const sendChannel=e.target.closest('[data-send-channel]'); if(sendChannel){const [id,channel]=sendChannel.dataset.sendChannel.split('|');void sendReminder(id,channel); return;}
-    const skip=e.target.closest('[data-skip]'); if(skip){const a=state.appointments.find(x=>x.id===skip.dataset.skip);if(a){a.reminderSent=true;save();render();showToast('Reminder skipped for now.');} return;}
+    const skip=e.target.closest('[data-skip]'); if(skip){const a=state.appointments.find(x=>x.id===skip.dataset.skip);if(a){a.reminderSkipped=true;save();render();showToast('Reminder skipped. You can re-queue it from the booking menu.');} return;}
+    const requeue=e.target.closest('[data-requeue]'); if(requeue){const a=state.appointments.find(x=>x.id===requeue.dataset.requeue); if(a){a.reminderSent=false; a.reminderSkipped=false; save(); closeModal('actionModal'); render(); showToast('Reminder added back to the queue.');} return;}
     const update=e.target.closest('[data-update]'); if(update){updateStatus(update.dataset.update); return;}
     const del=e.target.closest('[data-delete]'); if(del){state.appointments=state.appointments.filter(x=>x.id!==del.dataset.delete);save();closeModal('actionModal');render();showToast('Booking deleted.');}
   });
@@ -327,6 +375,15 @@ document.getElementById('mobileAddBtn')?.addEventListener('click',()=>{
 
 bind();
 render();
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {
+      // The app remains usable online if the browser blocks service workers.
+    });
+  });
+}
+
+void refreshEmailStatus();
 if(!onboarding.completed){ renderOnboarding(); openModal('onboardingModal'); }
 
 // iPhone / PWA install hint. Safari requires the user to use Share → Add to Home Screen.
