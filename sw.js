@@ -1,4 +1,4 @@
-const CACHE = 'confirmly-action-modal-fix-v23';
+const CACHE = 'confirmly-delete-live-refresh-v24';
 const APP_SHELL = [
   './',
   './index.html',

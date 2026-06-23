@@ -562,11 +562,23 @@ function confirmDeleteAppointment(){
   state.appointments=state.appointments.filter(x=>String(x.id)!==String(id));
   if(state.appointments.length===before){ showToast('This booking could not be deleted.'); return; }
 
+  // Remove any visible copy of this booking immediately, even before the next full render.
+  document.querySelectorAll(`[data-view-booking="${CSS.escape(String(id))}"], [data-send="${CSS.escape(String(id))}"], [data-send-single="${CSS.escape(String(id))}"], [data-actions="${CSS.escape(String(id))}"]`)
+    .forEach(button => button.closest('.message-card, tr, .appointment-row')?.remove());
+
   save();
   pendingDeleteAppointmentId=null;
   closeModal('deleteModal');
   closeModal('actionModal');
-  refreshBookingSurfaces();
+
+  // Full render keeps the active Reminder Queue tab, its counts, Bookings table,
+  // dashboard metrics and any open filters in sync immediately.
+  render();
+  requestAnimationFrame(() => {
+    updateMessages();
+    updateAppointmentsTable();
+  });
+
   showToast(`${appointment.client}'s booking deleted.`);
   haptic('success');
 }

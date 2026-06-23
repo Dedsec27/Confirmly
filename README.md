@@ -45,3 +45,9 @@ This is still a prototype plan selector. Selecting Starter or Pro does not charg
 - Fixed booking action modal buttons by attaching direct click handlers every time the modal is opened.
 - Edit, confirm, reschedule, no-show, re-queue, cancel, and delete now work from View booking.
 - Updated PWA cache so the fix reaches installed apps.
+
+
+## v24
+- Deleting a booking from View booking now immediately refreshes the active Reminder Queue tab.
+- Sent/Ready counts, booking table, dashboard metrics, and queue cards now stay in sync without manual refresh.
+- Updated PWA cache version.
