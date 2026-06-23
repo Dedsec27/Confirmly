@@ -45,3 +45,9 @@ Never put a Resend key in `app.js`, `index.html`, or GitHub. The API key belongs
 
 ## v5 booking actions
 Edit and Delete are now visible directly on every appointment row, rather than hidden behind the three-dot menu.
+
+
+## v6 booking action reliability fix
+- Edit and Delete row buttons now use direct listeners after every appointment-table render.
+- Touch/click propagation is stopped so table, mobile, and global handlers cannot swallow or duplicate the action.
+- Service-worker cache bumped to `confirmly-booking-actions-v6`.

@@ -98,11 +98,35 @@ function updateQuickStart(){
   document.getElementById('gettingStarted').classList.toggle('hidden-onboarding', onboarding.completed);
 }
 
+function bindBookingRowActions(){
+  // These buttons are rendered dynamically, so bind their actions immediately after each table render.
+  // This avoids relying on event delegation through table / mobile layers and keeps edit/delete reliable on touch devices.
+  document.querySelectorAll('#appointmentsTable [data-edit]').forEach(button=>{
+    button.onclick=(event)=>{
+      event.preventDefault();
+      event.stopPropagation();
+      const id=button.dataset.edit;
+      if(!id){ showToast('This booking could not be opened.'); return; }
+      openEditAppointment(id);
+    };
+  });
+  document.querySelectorAll('#appointmentsTable [data-delete]').forEach(button=>{
+    button.onclick=(event)=>{
+      event.preventDefault();
+      event.stopPropagation();
+      const id=button.dataset.delete;
+      if(!id){ showToast('This booking could not be deleted.'); return; }
+      deleteAppointment(id);
+    };
+  });
+}
+
 function updateAppointmentsTable(){
   const status=document.getElementById('statusFilter').value;
   const term=document.getElementById('searchInput').value.toLowerCase().trim();
   const rows=sortedAppointments().filter(a=>(status==='all'||a.status===status)&&(`${a.client} ${a.service} ${a.contact}`).toLowerCase().includes(term));
   document.getElementById('appointmentsTable').innerHTML=rows.length?rows.map(a=>`<tr><td class="client-cell"><strong>${escapeHtml(a.client)}</strong><span>${escapeHtml(a.contact)}</span></td><td data-label="Service">${escapeHtml(a.service)}</td><td data-label="When"><strong>${prettyDate(a.date)}</strong><span style="color:#7b8680;font-size:11px">${a.time}</span></td><td data-label="Value">${money(a.value)}</td><td data-label="Status"><span class="status ${a.status}">${statusLabel(a.status)}</span></td><td class="booking-row-actions"><button type="button" class="row-action-btn edit-row-btn" aria-label="Edit ${escapeHtml(a.client)}" data-edit="${a.id}">Edit</button><button type="button" class="row-action-btn delete-row-btn" aria-label="Delete ${escapeHtml(a.client)}" data-delete="${a.id}">Delete</button></td></tr>`).join(''):`<tr><td colspan="6"><div class="empty-state"><strong>No bookings found</strong><span>Try a different filter or add a new booking.</span></div></td></tr>`;
+  bindBookingRowActions();
 }
 
 function messageText(a){
@@ -418,8 +442,10 @@ function bind(){
     const skip=e.target.closest('[data-skip]'); if(skip){const a=state.appointments.find(x=>x.id===skip.dataset.skip);if(a){a.reminderSkipped=true;save();render();showToast('Reminder skipped. You can re-queue it from the booking menu.');} return;}
     const requeue=e.target.closest('[data-requeue]'); if(requeue){const a=state.appointments.find(x=>x.id===requeue.dataset.requeue); if(a){a.reminderSent=false; a.reminderSkipped=false; save(); closeModal('actionModal'); render(); showToast('Reminder added back to the queue.');} return;}
     const update=e.target.closest('[data-update]'); if(update){updateStatus(update.dataset.update); return;}
-    const edit=e.target.closest('[data-edit]'); if(edit){openEditAppointment(edit.dataset.edit); return;}
-    const del=e.target.closest('[data-delete]'); if(del){deleteAppointment(del.dataset.delete); return;}
+    // Row-level Edit/Delete buttons have explicit listeners bound after rendering.
+    // Keep this delegation only for action-modal controls outside the table.
+    const edit=e.target.closest('#actionModal [data-edit]'); if(edit){openEditAppointment(edit.dataset.edit); return;}
+    const del=e.target.closest('#actionModal [data-delete]'); if(del){deleteAppointment(del.dataset.delete); return;}
   });
   document.querySelectorAll('.modal-backdrop').forEach(m=>m.addEventListener('click',e=>{if(e.target===m && m.id!=='onboardingModal')closeModal(m.id)}));
 }
