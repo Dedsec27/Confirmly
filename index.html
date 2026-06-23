@@ -14,7 +14,7 @@
 <body>
   <div class="app-shell">
     <aside class="sidebar" id="sidebar">
-      <div class="brand"><span class="brand-mark">✓</span><span>confirmly</span></div>
+      <div class="brand"><div class="brand-lockup"><span class="brand-mark">✓</span><span class="brand-text">confirmly</span></div><button type="button" class="sidebar-toggle-btn" id="sidebarToggleBtn" aria-label="Collapse sidebar" title="Collapse sidebar">⟨</button></div>
       <nav class="nav-links" aria-label="Primary">
         <button type="button" class="nav-item active" data-view="dashboard"><span>◫</span> Overview</button>
         <button type="button" class="nav-item" data-view="appointments"><span>▣</span> Appointments</button>
@@ -84,7 +84,7 @@
       </section>
 
       <section id="settings" class="view">
-        <div class="section-toolbar"><div><h2>Settings</h2><p>Make Confirmly sound like your business.</p></div></div>
+        <div class="section-toolbar settings-intro"><div><p>Make Confirmly sound like your business.</p></div></div>
         <div class="settings-grid">
           <section class="panel setting-panel"><h3>Business details</h3><label>Business name<input id="businessName" value="Atlas Studio" autocomplete="organization" /></label><div class="setting-label">Reminder channels</div><div class="channel-options" id="availableChannels"><label class="channel-option"><input type="checkbox" value="WhatsApp" checked><span>◉</span><div><strong>WhatsApp</strong><small>Fastest confirmations</small></div></label><label class="channel-option"><input type="checkbox" value="SMS" checked><span>✦</span><div><strong>SMS</strong><small>Works without an app</small></div></label><label class="channel-option"><input type="checkbox" value="Email" checked><span>✉</span><div><strong>Email</strong><small>Best for longer details</small></div></label></div><label>Default channel for “Send all”<select id="channel"><option>WhatsApp</option><option>SMS</option><option>Email</option></select></label><label>Default appointment value (€)<input id="defaultValue" type="number" min="0" value="60" inputmode="decimal" /></label><label>Appearance<select id="themeSelect"><option value="light">Light mode</option><option value="dark">Dark mode</option></select></label><button type="button" class="primary-btn" id="saveSettingsBtn">Save settings</button></section>
           <section class="panel setting-panel reminder-flow-panel"><div class="flow-panel-heading"><div><h3>Reminder flow</h3><p>Choose what gets sent and when. Reminders are still sent manually from the queue.</p></div><span class="flow-manual-badge">Manual</span></div>

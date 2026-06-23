@@ -70,3 +70,16 @@ This is still a prototype plan selector. Selecting Starter or Pro does not charg
 - Each step can be enabled/disabled, renamed, and given a custom timing. Reminder messages remain editable.
 - Reminder Queue flow summary now mirrors saved flow settings.
 - Updated PWA cache version.
+
+
+## v28
+- Removed the duplicate Settings heading inside the Settings page.
+- Enlarged the “Make Confirmly sound like your business.” description for clearer hierarchy.
+- Updated PWA cache version.
+
+
+## v29
+- Hides the top "Send all ready" and "New appointment" buttons while the Settings view is open.
+- Added a desktop sidebar collapse/expand button inside the sidebar brand area.
+- Sidebar state is saved locally and restored on refresh.
+- Updated the service worker cache version.

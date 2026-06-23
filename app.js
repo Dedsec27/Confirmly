@@ -12,7 +12,7 @@ function localISODate(date = new Date()) {
 function todayISO() { return localISODate(); }
 function shiftDate(days) { const d = new Date(); d.setDate(d.getDate() + days); return localISODate(d); }
 const demo = {
-  settings:{businessName:'Atlas Studio',channel:'Email',availableChannels:['WhatsApp','SMS','Email'],defaultValue:60,theme:'light',reminderFlow:{first:{enabled:true,name:'First reminder',amount:48,unit:'hours'},followUp:{enabled:true,name:'Follow-up reminder',amount:4,unit:'hours'},recovery:{enabled:true,name:'Missed-booking recovery'}},message48:'Hi {first_name}, just a quick reminder about your {service} appointment on {date} at {time}. Tap below to confirm or reschedule.',message4:'Hi {first_name}, we’re looking forward to seeing you at {time} today. Please confirm your appointment.'},
+  settings:{businessName:'Atlas Studio',channel:'Email',availableChannels:['WhatsApp','SMS','Email'],defaultValue:60,theme:'light',sidebarCollapsed:false,reminderFlow:{first:{enabled:true,name:'First reminder',amount:48,unit:'hours'},followUp:{enabled:true,name:'Follow-up reminder',amount:4,unit:'hours'},recovery:{enabled:true,name:'Missed-booking recovery'}},message48:'Hi {first_name}, just a quick reminder about your {service} appointment on {date} at {time}. Tap below to confirm or reschedule.',message4:'Hi {first_name}, we’re looking forward to seeing you at {time} today. Please confirm your appointment.'},
   appointments:[
     {id:'a1',client:'Sofia Petrou',contact:'+30 694 111 2233',service:'Colour + cut',date:todayISO(),time:'10:30',value:85,status:'confirmed',notes:'Prefers subtle warm tones.',reminderSent:true},
     {id:'a2',client:'Nikos Vassiliou',contact:'+30 697 345 6655',service:'Beard trim',date:todayISO(),time:'12:15',value:30,status:'waiting',notes:'',reminderSent:false},
@@ -70,6 +70,7 @@ function normaliseState(data){
   next.settings={...structuredClone(demo.settings),...(next.settings||{})};
   next.settings.plan = ['Trial','Starter','Pro'].includes(next.settings.plan) ? next.settings.plan : 'Trial';
   if(!Array.isArray(next.settings.availableChannels)||!next.settings.availableChannels.length) next.settings.availableChannels=['WhatsApp','SMS','Email'];
+  next.settings.sidebarCollapsed = next.settings.sidebarCollapsed === true;
   const defaultFlow = structuredClone(demo.settings.reminderFlow);
   next.settings.reminderFlow = {
     first:{...defaultFlow.first,...(next.settings.reminderFlow?.first||{})},
@@ -378,7 +379,41 @@ function updatePlanUi(){
   if(copy) copy.textContent=plan==='Trial'?'Start preventing no-shows today.':'Your plan selection is saved locally.';
   if(button) button.textContent=plan==='Trial'?'Upgrade plan':'Manage plan';
 }
-function render(){ applyTheme(state.settings.theme); updateWorkspaceTitle(); updateDashboard(); updateQuickStart(); updateAppointmentsTable(); updateMessages(); updateSettings(); updateReminderFlowSummary(); updatePlanUi(); }
+function updateTopbarActions(view){
+  const sendAllBtn=document.getElementById('sendAllBtn');
+  const newAppointmentBtn=document.getElementById('newAppointmentBtn');
+  const installAppBtn=document.getElementById('installAppBtn');
+  const hidden=view==='settings';
+  [sendAllBtn,newAppointmentBtn,installAppBtn].forEach(btn=>{ if(btn) btn.classList.toggle('hidden', hidden || btn.classList.contains('install-app-btn') && btn.classList.contains('hidden')); });
+  if(installAppBtn && !hidden && deferredInstallPrompt){ installAppBtn.classList.remove('hidden'); }
+}
+function applySidebarPreference(){
+  const shell=document.querySelector('.app-shell');
+  const btn=document.getElementById('sidebarToggleBtn');
+  const collapsed=state.settings.sidebarCollapsed===true;
+  shell?.classList.toggle('sidebar-collapsed', collapsed);
+  if(btn){
+    btn.textContent=collapsed ? '⟩' : '⟨';
+    btn.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
+    btn.setAttribute('title', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
+  }
+}
+function setActiveView(view){
+  document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.view===view));
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===view));
+  const titles={dashboard:'Your appointment control center',appointments:'Your bookings',messages:'Send reminders',settings:'Settings'};
+  const eyebrows={dashboard:'YOUR DAILY WORKFLOW',appointments:'BOOKINGS',messages:'REMINDERS',settings:'CONFIRMLY WORKSPACE'};
+  document.getElementById('pageTitle').textContent=titles[view];
+  document.getElementById('pageEyebrow').textContent=eyebrows[view];
+  document.getElementById('sidebar').classList.remove('open');
+  setMobileView(view);
+  updateTopbarActions(view);
+  if(view==='appointments') updateAppointmentsTable();
+  if(view==='messages') updateMessages();
+  if(view==='dashboard') updateDashboard();
+  if(view==='settings') void refreshEmailStatus();
+}
+function render(){ applyTheme(state.settings.theme); applySidebarPreference(); updateWorkspaceTitle(); updateDashboard(); updateQuickStart(); updateAppointmentsTable(); updateMessages(); updateSettings(); updateReminderFlowSummary(); updatePlanUi(); updateTopbarActions(document.querySelector('.view.active')?.id||'dashboard'); }
 
 function renderOnboarding(){
   const dots=[1,2,3];
@@ -704,19 +739,7 @@ async function refreshEmailStatus(){
 function bind(){
   document.querySelectorAll('.nav-item').forEach(btn=>btn.addEventListener('click',()=>{
     const view=btn.dataset.view;
-    document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x===btn));
-    document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===view));
-    const titles={dashboard:'Your appointment control center',appointments:'Your bookings',messages:'Send reminders',settings:'Settings'};
-    const eyebrows={dashboard:'YOUR DAILY WORKFLOW',appointments:'BOOKINGS',messages:'REMINDERS',settings:'CONFIRMLY WORKSPACE'};
-    document.getElementById('pageTitle').textContent=titles[view];
-    document.getElementById('pageEyebrow').textContent=eyebrows[view];
-    document.getElementById('sidebar').classList.remove('open');
-    setMobileView(view);
-    // Re-render the destination immediately so Appointments never opens as an empty screen.
-    if(view==='appointments') updateAppointmentsTable();
-    if(view==='messages') updateMessages();
-    if(view==='dashboard') updateDashboard();
-    if(view==='settings') void refreshEmailStatus();
+    setActiveView(view);
     haptic();
   }));
   document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>goToView(b.dataset.go)));
@@ -757,6 +780,11 @@ function bind(){
   document.getElementById('accountInstallBtn')?.addEventListener('click',()=>{ closeModal('accountMenuModal'); document.getElementById('installAppBtn')?.click(); });
   document.querySelectorAll('[data-plan-select]').forEach(button=>button.addEventListener('click',()=>choosePlan(button.dataset.planSelect)));
   document.getElementById('mobileMenu').addEventListener('click',()=>document.getElementById('sidebar').classList.toggle('open'));
+  document.getElementById('sidebarToggleBtn')?.addEventListener('click',()=>{
+    state.settings.sidebarCollapsed=!state.settings.sidebarCollapsed;
+    save();
+    applySidebarPreference();
+  });
   document.querySelectorAll('.queue-tab').forEach(b=>b.addEventListener('click',()=>{currentQueue=b.dataset.queue;updateMessages()}));
   document.getElementById('saveSettingsBtn').addEventListener('click',()=>{
     const enabled=[...document.querySelectorAll('#availableChannels input:checked')].map(input=>input.value);

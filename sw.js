@@ -1,4 +1,4 @@
-const CACHE = 'confirmly-reminder-flow-v27';
+const CACHE = 'confirmly-sidebar-toggle-v29';
 const APP_SHELL = [
   './',
   './index.html',
