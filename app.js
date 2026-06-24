@@ -220,7 +220,8 @@ function updateDashboard(){
 
   const due=apps.filter(a=>a.status==='waiting'&&!a.reminderSent&&!a.reminderSkipped);
   document.querySelector('.insight-banner strong').textContent=due.length?`${due.length} client${due.length===1?'':'s'} still need confirmation.`:'Your reminder queue is clear.';
-  document.getElementById('bannerCopy').textContent=due.length?`Send ${due.length===1?'a reminder':'reminders'} now to protect an estimated ${money(due.reduce((s,a)=>s+Number(a.value||0),0))}.`:'Add a new booking whenever an appointment is made.';
+  const bannerCopy=document.getElementById('bannerCopy') || document.querySelector('.insight-banner p');
+  if(bannerCopy) bannerCopy.textContent=due.length?`Send ${due.length===1?'a reminder':'reminders'} now to protect an estimated ${money(due.reduce((s,a)=>s+Number(a.value||0),0))}.`:'Add a new booking whenever an appointment is made.';
   document.getElementById('bannerSendBtn').textContent=due.length ? 'View reminders' : 'View reminders';
 
   const today=sortedAppointments().filter(isToday);
@@ -335,7 +336,7 @@ async function syncRemoteCustomers(options={}){
     return false;
   }
   try {
-    const response = await fetch(`/api/customers?workspace=${encodeURIComponent(workspaceKey)}`, { cache: 'no-store' });
+    const response = await fetch(`/api/customers?workspace=${encodeURIComponent(workspaceKey)}&t=${Date.now()}`, { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } });
     const payload = await response.json().catch(()=>({}));
     if(!response.ok){
       const reason=payload.error || 'Customer sync could not reach the database.';
@@ -630,7 +631,10 @@ function setActiveView(view){
   setMobileView(view);
   updateTopbarActions(view);
   if(view==='appointments') updateAppointmentsTable();
-  if(view==='customers') updateCustomers();
+  if(view==='customers'){
+    updateCustomers();
+    void syncRemoteCustomers();
+  }
   if(view==='messages') updateMessages();
   if(view==='dashboard') updateDashboard();
   if(view==='settings') void refreshEmailStatus();
@@ -1167,13 +1171,14 @@ function startCustomerAutoSync(){
   if(customerSyncTimer) clearInterval(customerSyncTimer);
   customerSyncTimer=setInterval(()=>{
     if(!document.hidden) void syncRemoteCustomers();
-  }, 8000);
+  }, 3000);
 }
 startCustomerAutoSync();
 window.addEventListener('focus', () => { void syncRemoteCustomers(); });
 window.addEventListener('visibilitychange', () => {
   if(!document.hidden) void syncRemoteCustomers();
 });
+window.addEventListener('pageshow', () => { void syncRemoteCustomers(); });
 if(!onboarding.completed){ renderOnboarding(); openModal('onboardingModal'); }
 
 // iPhone / PWA install hint. Safari requires the user to use Share → Add to Home Screen.

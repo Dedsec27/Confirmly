@@ -42,3 +42,13 @@ Restores the missing customer choice, QR, and preview modals that caused the **N
 ## v42 — Automatic customer sync
 - Removes the visible Customers “Sync” button.
 - QR-created customer profiles now refresh automatically every 8 seconds while the dashboard is open, and immediately when the tab regains focus.
+
+
+## v43 — Reliable automatic customer refresh
+- Polls the shared customer database every 3 seconds while the app is visible.
+- Immediately refreshes when Customers opens, the page regains focus, becomes visible, or is restored from browser cache.
+- Adds request/response no-cache protections and a new PWA cache version so an older script cannot keep running.
+
+
+## v44 fix
+Fixes a dashboard render crash caused by a missing `bannerCopy` element. The crash prevented the automatic customer-sync timer from ever starting.

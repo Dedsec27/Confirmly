@@ -1,4 +1,4 @@
-const CACHE = 'confirmly-customer-sync-debug-v41';
+const CACHE = 'confirmly-reliable-auto-sync-v43';
 const APP_SHELL = [
   './',
   './index.html',
