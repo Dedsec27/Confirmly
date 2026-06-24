@@ -169,6 +169,42 @@
     </div>
   </div>
 
+
+  <div class="modal-backdrop hidden" id="customerChoiceModal">
+    <div class="modal compact customer-choice-modal" role="dialog" aria-modal="true" aria-labelledby="customerChoiceTitle">
+      <div class="modal-header"><div><p class="eyebrow">NEW CUSTOMER</p><h2 id="customerChoiceTitle">How would you like to add them?</h2><p class="customer-choice-copy">Add the details yourself or let the customer complete their own profile.</p></div><button type="button" class="close-btn" data-close="customerChoiceModal" aria-label="Close">×</button></div>
+      <div class="customer-choice-list">
+        <button type="button" class="customer-choice-card" id="addCustomerManuallyBtn"><span class="choice-icon mint">＋</span><span><strong>Add customer manually</strong><small>Enter their details at the counter.</small></span><b>›</b></button>
+        <button type="button" class="customer-choice-card featured-choice" id="customerMadeProfileBtn"><span class="choice-icon lilac">⌁</span><span><strong>Let customer create profile</strong><small>Show a QR code for them to scan and complete.</small></span><b>›</b></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="customerQrModal">
+    <div class="modal compact customer-qr-modal" role="dialog" aria-modal="true" aria-labelledby="customerQrTitle">
+      <div class="modal-header"><div><p class="eyebrow">CUSTOMER SIGN-UP</p><h2 id="customerQrTitle">Let them create their profile</h2></div><button type="button" class="close-btn" data-close="customerQrModal" aria-label="Close">×</button></div>
+      <div class="qr-card"><img id="customerQrImage" alt="QR code for customer sign-up" /><div><strong>Scan to join <span id="customerQrBusinessName">your business</span></strong><p>The customer can add their own contact details and consent preferences from their phone.</p></div></div>
+      <div class="customer-intake-link"><span>Shareable form link</span><div><input id="customerIntakeUrl" readonly aria-label="Customer sign-up form link" /><button type="button" class="outline-btn" id="copyCustomerIntakeUrlBtn">Copy</button></div></div>
+      <div class="qr-actions"><button type="button" class="outline-btn" id="previewCustomerIntakeBtn">Preview form</button><button type="button" class="primary-btn" id="doneCustomerQrBtn">Done</button></div>
+      <p class="qr-footnote">Customer profiles sync to this workspace once the form is submitted.</p>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="customerIntakePreviewModal">
+    <div class="modal compact customer-intake-preview-modal" role="dialog" aria-modal="true" aria-labelledby="customerIntakePreviewTitle">
+      <div class="modal-header"><div><p class="eyebrow">CUSTOMER FORM PREVIEW</p><h2 id="customerIntakePreviewTitle">Create your profile</h2></div><button type="button" class="close-btn" data-close="customerIntakePreviewModal" aria-label="Close">×</button></div>
+      <p class="customer-intake-business" id="customerIntakeBusinessName">Atlas Studio</p>
+      <form id="customerIntakePreviewForm" class="form-grid">
+        <label class="full-width">Your name<input name="name" required placeholder="e.g. Sofia Petrou" autocomplete="name" /></label>
+        <label>Phone number<input name="phone" inputmode="tel" placeholder="e.g. +30 69…" autocomplete="tel" /></label>
+        <label>Email address<input name="email" type="email" placeholder="e.g. sofia@email.com" autocomplete="email" /></label>
+        <label class="full-width">Preferred reminder channel<select name="preferredChannel"><option value="Email">Email</option><option value="WhatsApp">WhatsApp</option><option value="SMS">SMS</option></select></label>
+        <div class="consent-grid full-width"><label class="consent-option"><input type="checkbox" name="reminderConsent" checked required><span><strong>Appointment reminders</strong><small>I agree to receive booking updates and reminders.</small></span></label><label class="consent-option"><input type="checkbox" name="marketingConsent"><span><strong>Offers and updates</strong><small>I would like occasional news and offers.</small></span></label><label class="consent-option"><input type="checkbox" name="whatsappOptIn"><span><strong>WhatsApp opt-in</strong><small>I agree to receive WhatsApp messages.</small></span></label></div>
+        <div class="modal-actions full-width"><button type="button" class="outline-btn" data-close="customerIntakePreviewModal">Cancel</button><button class="primary-btn" type="submit">Create profile</button></div>
+      </form>
+    </div>
+  </div>
+
   <div class="modal-backdrop hidden" id="customerProfileModal"><div class="modal customer-profile-modal" role="dialog" aria-modal="true" aria-labelledby="customerProfileTitle"><div class="modal-header"><div><p class="eyebrow">CUSTOMER PROFILE</p><h2 id="customerProfileTitle">Customer</h2></div><button type="button" class="close-btn" data-close="customerProfileModal">×</button></div><div id="customerProfileContent"></div></div></div>
 
   <div class="modal-backdrop hidden" id="actionModal"><div class="modal compact"><div class="modal-header"><div><p class="eyebrow">APPOINTMENT ACTION</p><h2 id="actionTitle">Update appointment</h2></div><button type="button" class="close-btn" data-close="actionModal">×</button></div><div id="actionContent"></div></div></div>

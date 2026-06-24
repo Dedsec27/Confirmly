@@ -27,6 +27,7 @@ let activeAppointmentId = null;
 let editingAppointmentId = null;
 let pendingDeleteAppointmentId = null;
 let pendingDeleteAllBookings = false;
+let customerIntakeSession = null;
 
 function readSavedDefaultChannel(){
   try {
@@ -308,6 +309,49 @@ function populateAppointmentCustomerSelect(selectedId=''){
   select.innerHTML=`<option value="">Create or type a new customer</option>${sortedCustomers().map(c=>`<option value="${c.id}">${escapeHtml(c.name)} · ${escapeHtml(customerContact(c))}</option>`).join('')}`;
   select.value=current;
 }
+function getCustomerIntakeUrl(){
+  const workspaceKey=state.settings.workspaceKey || (state.settings.workspaceKey=crypto.randomUUID?.()||String(Date.now()+Math.random()));
+  const session=customerIntakeSession || (customerIntakeSession=crypto.randomUUID?.()||String(Date.now()+Math.random()));
+  save();
+  const base=new URL('intake.html', window.location.href);
+  base.searchParams.set('workspace',workspaceKey);
+  base.searchParams.set('session',session);
+  base.searchParams.set('business',state.settings.businessName || 'Your business');
+  return base.toString();
+}
+function updateCustomerQrModal(){
+  const url=getCustomerIntakeUrl();
+  const field=document.getElementById('customerIntakeUrl');
+  const qr=document.getElementById('customerQrImage');
+  const business=document.getElementById('customerQrBusinessName');
+  if(field) field.value=url;
+  if(qr) qr.src=`https://api.qrserver.com/v1/create-qr-code/?size=360x360&margin=1&data=${encodeURIComponent(url)}`;
+  if(business) business.textContent=state.settings.businessName || 'your business';
+}
+function openCustomerChoice(){ openModal('customerChoiceModal'); }
+function openCustomerQr(){ closeModal('customerChoiceModal'); updateCustomerQrModal(); openModal('customerQrModal'); }
+function openCustomerIntakePreview(){
+  closeModal('customerQrModal');
+  document.getElementById('customerIntakeBusinessName').textContent=state.settings.businessName || 'Your business';
+  document.getElementById('customerIntakePreviewTitle').textContent='Create your profile';
+  document.getElementById('customerIntakePreviewForm')?.reset();
+  openModal('customerIntakePreviewModal');
+}
+function saveCustomerIntakePreview(event){
+  event.preventDefault();
+  const form=event.currentTarget, fd=new FormData(form);
+  const name=String(fd.get('name')||'').trim();
+  const phone=String(fd.get('phone')||'').trim();
+  const email=String(fd.get('email')||'').trim().toLowerCase();
+  if(!name){ showToast('Enter your name.'); return; }
+  if(!phone&&!email){ showToast('Add a phone number or email address.'); return; }
+  if(email&&!isEmailAddress(email)){ showToast('Enter a valid email address.'); return; }
+  const exists=(state.customers||[]).find(c=>(email&&String(c.email||'').toLowerCase()===email)||(phone&&String(c.phone||'').replace(/\s/g,'')===phone.replace(/\s/g,'')));
+  const values={name,phone,email,preferredChannel:fd.get('preferredChannel')||'Email',notes:'',reminderConsent:fd.get('reminderConsent')==='on',marketingConsent:fd.get('marketingConsent')==='on',whatsappOptIn:fd.get('whatsappOptIn')==='on',intakeSource:'QR form',createdAt:new Date().toISOString()};
+  if(exists) Object.assign(exists,values); else state.customers.push({id:crypto.randomUUID?.()||String(Date.now()+Math.random()),...values});
+  save(); closeModal('customerIntakePreviewModal'); render(); goToView('customers'); showToast('Customer profile created.'); haptic('success');
+}
+
 function openCustomerForm(customer=null){
   const form=document.getElementById('customerForm');
   form.reset();
@@ -876,7 +920,13 @@ function bind(){
     form.elements.contact.value=customerContact(customer)==='No contact details'?'':customerContact(customer);
     form.elements.preferredChannel.value=customer.preferredChannel||'auto';
   });
-  document.getElementById('newCustomerBtn')?.addEventListener('click',()=>openCustomerForm());
+  document.getElementById('newCustomerBtn')?.addEventListener('click',openCustomerChoice);
+  document.getElementById('addCustomerManuallyBtn')?.addEventListener('click',()=>{ closeModal('customerChoiceModal'); openCustomerForm(); });
+  document.getElementById('customerMadeProfileBtn')?.addEventListener('click',openCustomerQr);
+  document.getElementById('doneCustomerQrBtn')?.addEventListener('click',()=>closeModal('customerQrModal'));
+  document.getElementById('previewCustomerIntakeBtn')?.addEventListener('click',openCustomerIntakePreview);
+  document.getElementById('copyCustomerIntakeUrlBtn')?.addEventListener('click',async()=>{ const value=document.getElementById('customerIntakeUrl')?.value||''; try { await navigator.clipboard.writeText(value); showToast('Form link copied.'); } catch { const field=document.getElementById('customerIntakeUrl'); field?.select(); document.execCommand('copy'); showToast('Form link copied.'); } });
+  document.getElementById('customerIntakePreviewForm')?.addEventListener('submit',saveCustomerIntakePreview);
   document.getElementById('customerForm')?.addEventListener('submit',saveCustomer);
   document.getElementById('customerSearchInput')?.addEventListener('input',updateCustomers);
   document.getElementById('statusFilter').addEventListener('change',updateAppointmentsTable);

@@ -115,3 +115,16 @@ This is still a prototype plan selector. Selecting Starter or Pro does not charg
 - Added customer directory, searchable profiles, consent indicators and booking history.
 - Added customer create/edit forms and customer selection in the appointment form.
 - Creating a booking now saves or links the customer automatically.
+
+
+## v38 — Customer-created profile via QR
+
+The **New customer** button now opens two choices: manual entry or a customer-created profile. The second option shows a real QR code and shareable `intake.html` form. The in-dashboard **Preview form** lets you test the complete profile experience immediately.
+
+For customer submissions from another phone to be stored permanently, configure Supabase for the included Vercel route:
+
+1. Create a `customers` table in Supabase with: `id uuid primary key default gen_random_uuid()`, `workspace_key text`, `name text`, `phone text`, `email text`, `preferred_channel text`, `reminder_consent boolean`, `marketing_consent boolean`, `whatsapp_opt_in boolean`, `source text`, `created_at timestamptz default now()`.
+2. Add `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` to Vercel Environment Variables.
+3. Redeploy. The public form then posts through `/api/customer-intake` without exposing the service key.
+
+This is an MVP intake route. Before real multi-business launch, add user authentication, workspace access control, rate limiting, and Supabase RLS policies.
