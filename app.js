@@ -327,15 +327,27 @@ function remoteCustomerToLocal(row){
   };
 }
 
-async function syncRemoteCustomers(){
+async function syncRemoteCustomers(options={}){
+  const {notify=false}=options;
   const workspaceKey = String(state.settings.workspaceKey || '').trim();
-  if(!workspaceKey) return;
+  if(!workspaceKey){
+    if(notify) showToast('Open the QR profile option once to create this workspace connection.');
+    return false;
+  }
+  const syncButton=document.getElementById('syncCustomersBtn');
+  const originalLabel=syncButton?.textContent;
+  if(syncButton){ syncButton.disabled=true; syncButton.textContent='Syncing…'; }
   try {
     const response = await fetch(`/api/customers?workspace=${encodeURIComponent(workspaceKey)}`, { cache: 'no-store' });
-    if(!response.ok) return;
-    const payload = await response.json();
+    const payload = await response.json().catch(()=>({}));
+    if(!response.ok){
+      const reason=payload.error || 'Customer sync could not reach the database.';
+      if(notify) showToast(reason);
+      console.error('Confirmly customer sync failed:', response.status, payload);
+      return false;
+    }
     const remoteCustomers = Array.isArray(payload.customers) ? payload.customers : [];
-    let changed = false;
+    let added=0;
     remoteCustomers.forEach(row => {
       const incoming = remoteCustomerToLocal(row);
       const existing = state.customers.find(customer =>
@@ -349,15 +361,19 @@ async function syncRemoteCustomers(){
         Object.assign(existing, incoming, { notes: preservedNotes || incoming.notes });
       } else {
         state.customers.push(incoming);
+        added++;
       }
-      changed = true;
     });
-    if(changed){
-      save();
-      render();
-    }
-  } catch {
-    // Dashboard keeps working offline and retries on the next load/focus.
+    save();
+    updateCustomers();
+    if(notify) showToast(added ? `${added} customer${added===1?'':'s'} synced.` : (remoteCustomers.length ? 'Customers are already up to date.' : 'No QR customers found for this workspace yet.'));
+    return true;
+  } catch(error) {
+    console.error('Confirmly customer sync failed:', error);
+    if(notify) showToast('Could not connect to the customer database.');
+    return false;
+  } finally {
+    if(syncButton){ syncButton.disabled=false; syncButton.textContent=originalLabel || '↻ Sync'; }
   }
 }
 
@@ -973,6 +989,7 @@ function bind(){
     form.elements.preferredChannel.value=customer.preferredChannel||'auto';
   });
   document.getElementById('newCustomerBtn')?.addEventListener('click',openCustomerChoice);
+  document.getElementById('syncCustomersBtn')?.addEventListener('click',()=>{ void syncRemoteCustomers({notify:true}); });
   document.getElementById('addCustomerManuallyBtn')?.addEventListener('click',()=>{ closeModal('customerChoiceModal'); openCustomerForm(); });
   document.getElementById('customerMadeProfileBtn')?.addEventListener('click',openCustomerQr);
   document.getElementById('doneCustomerQrBtn')?.addEventListener('click',()=>closeModal('customerQrModal'));

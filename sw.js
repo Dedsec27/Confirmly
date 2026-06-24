@@ -1,4 +1,4 @@
-const CACHE = 'confirmly-live-customer-sync-v39';
+const CACHE = 'confirmly-customer-sync-debug-v41';
 const APP_SHELL = [
   './',
   './index.html',

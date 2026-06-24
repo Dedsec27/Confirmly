@@ -31,3 +31,9 @@ The dashboard remains usable offline, but cross-device QR intake requires Supaba
 
 ## v40 fix
 Restores the missing customer choice, QR, and preview modals that caused the **New customer** button to do nothing in v39.
+
+
+## v41 sync visibility
+- Adds a **Sync** button to Customers.
+- Shows a clear message when the customer API/database connection fails instead of failing silently.
+- Manual sync refreshes the customers table without requiring a full page reload.
