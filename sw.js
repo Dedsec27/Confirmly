@@ -1,4 +1,4 @@
-const CACHE = 'confirmly-runtime-safety-v36';
+const CACHE = 'confirmly-customers-v37';
 const APP_SHELL = [
   './',
   './index.html',

@@ -13,7 +13,8 @@ function todayISO() { return localISODate(); }
 function shiftDate(days) { const d = new Date(); d.setDate(d.getDate() + days); return localISODate(d); }
 const demo = {
   settings:{businessName:'Atlas Studio',channel:'Email',availableChannels:['WhatsApp','SMS','Email'],defaultValue:60,theme:'light',sidebarCollapsed:false,reminderFlow:{first:{enabled:true,name:'First reminder',amount:48,unit:'hours'},followUp:{enabled:true,name:'Follow-up reminder',amount:4,unit:'hours'},recovery:{enabled:true,name:'Missed-booking recovery'}},message48:'Hi {first_name}, just a quick reminder about your {service} appointment on {date} at {time}. Tap below to confirm or reschedule.',message4:'Hi {first_name}, we’re looking forward to seeing you at {time} today. Please confirm your appointment.'},
-  appointments:[]
+  appointments:[],
+  customers:[]
 };
 
 // IDs used only by the original sample appointments. Existing real bookings use generated IDs.
@@ -102,6 +103,17 @@ function normaliseState(data){
     next.settings.sampleBookingsRemovedV32=true;
   }
   next.appointments=(next.appointments||[]).map(a=>({preferredChannel:'auto', selectedReminderChannel:null, reminderChannel:null, reminderHistory:[], reminderSkipped:false, ...a}));
+  next.customers=Array.isArray(next.customers) ? next.customers : [];
+  next.customers=next.customers.map(c=>({id:crypto.randomUUID?.()||String(Date.now()+Math.random()),name:'',phone:'',email:'',preferredChannel:'auto',reminderConsent:true,marketingConsent:false,whatsappOptIn:false,notes:'',createdAt:new Date().toISOString(),...c}));
+  next.appointments.forEach(a=>{
+    const key=String(a.contact||'').trim().toLowerCase();
+    const existing=next.customers.find(c=>String(c.email||'').toLowerCase()===key || String(c.phone||'').replace(/\s/g,'')===String(a.contact||'').replace(/\s/g,''));
+    if(existing){ a.customerId=a.customerId||existing.id; return; }
+    if(a.client && a.contact){
+      const customer={id:crypto.randomUUID?.()||String(Date.now()+Math.random()),name:a.client,phone:isEmailAddress(a.contact)?'':a.contact,email:isEmailAddress(a.contact)?a.contact:'',preferredChannel:a.preferredChannel||'auto',reminderConsent:true,marketingConsent:false,whatsappOptIn:false,notes:'',createdAt:new Date().toISOString()};
+      next.customers.push(customer); a.customerId=customer.id;
+    }
+  });
   return next;
 }
 function load(){
@@ -129,6 +141,26 @@ function prettyDate(date){ return new Intl.DateTimeFormat('en-GB',{weekday:'shor
 function statusLabel(s){ return s==='no-show'?'No-show':s.charAt(0).toUpperCase()+s.slice(1); }
 function dateTimeValue(a){ return new Date(`${a.date}T${a.time||'00:00'}`).getTime(); }
 function sortedAppointments(){ return [...state.appointments].sort((a,b)=>dateTimeValue(a)-dateTimeValue(b)); }
+function sortedCustomers(){ return [...(state.customers||[])].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''))); }
+function customerContact(customer){ return customer.email || customer.phone || 'No contact details'; }
+function customerBookings(customerId){ return state.appointments.filter(a=>a.customerId===customerId); }
+function customerChannel(customer){ return customer.preferredChannel&&customer.preferredChannel!=='auto' ? customer.preferredChannel : state.settings.channel; }
+function ensureCustomerFromBooking(changes, customerId=''){
+  let customer=(state.customers||[]).find(c=>c.id===customerId);
+  const contact=String(changes.contact||'').trim();
+  if(!customer && contact){
+    customer=(state.customers||[]).find(c=>String(c.email||'').toLowerCase()===contact.toLowerCase() || String(c.phone||'').replace(/\s/g,'')===contact.replace(/\s/g,''));
+  }
+  if(!customer){
+    customer={id:crypto.randomUUID(),name:changes.client,phone:isEmailAddress(contact)?'':contact,email:isEmailAddress(contact)?contact:'',preferredChannel:changes.preferredChannel||'auto',reminderConsent:true,marketingConsent:false,whatsappOptIn:false,notes:'',createdAt:new Date().toISOString()};
+    state.customers.push(customer);
+  } else {
+    customer.name=changes.client || customer.name;
+    if(isEmailAddress(contact)) customer.email=contact; else if(contact) customer.phone=contact;
+    if(changes.preferredChannel && changes.preferredChannel!=='auto') customer.preferredChannel=changes.preferredChannel;
+  }
+  return customer.id;
+}
 function isToday(a){ return a.date===todayISO(); }
 function escapeHtml(v){ return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
 function showToast(text){ const t=document.getElementById('toast'); t.textContent=text; t.classList.add('show'); clearTimeout(showToast.timer); showToast.timer=setTimeout(()=>t.classList.remove('show'),2800); }
@@ -241,6 +273,83 @@ function updateAppointmentsTable(){
   bindBookingRowActions();
 }
 
+
+function customerConsentMarkup(customer){
+  const tags=[];
+  if(customer.reminderConsent) tags.push('<span class="consent-chip active">Reminders</span>');
+  if(customer.marketingConsent) tags.push('<span class="consent-chip">Marketing</span>');
+  if(customer.whatsappOptIn) tags.push('<span class="consent-chip">WhatsApp</span>');
+  return tags.length ? tags.join('') : '<span class="consent-chip muted">No consent</span>';
+}
+function updateCustomers(){
+  const search=document.getElementById('customerSearchInput');
+  const query=String(search?.value||'').trim().toLowerCase();
+  const customers=sortedCustomers().filter(c=>`${c.name} ${c.phone} ${c.email}`.toLowerCase().includes(query));
+  const total=state.customers.length;
+  const reminder=state.customers.filter(c=>c.reminderConsent).length;
+  const marketing=state.customers.filter(c=>c.marketingConsent).length;
+  document.getElementById('customerTotalCount').textContent=total;
+  document.getElementById('customerReminderConsentCount').textContent=reminder;
+  document.getElementById('customerMarketingConsentCount').textContent=marketing;
+  const holder=document.getElementById('customersTable');
+  if(!holder) return;
+  holder.innerHTML=customers.length?customers.map(c=>{
+    const bookings=customerBookings(c.id);
+    const upcoming=bookings.filter(a=>dateTimeValue(a)>=Date.now()&&a.status!=='cancelled').sort((a,b)=>dateTimeValue(a)-dateTimeValue(b))[0];
+    return `<tr><td class="client-cell"><strong>${escapeHtml(c.name||'Unnamed customer')}</strong><span>${upcoming?`Next: ${prettyDate(upcoming.date)} · ${upcoming.time}`:'No upcoming booking'}</span></td><td><strong>${escapeHtml(customerContact(c))}</strong></td><td><span class="channel-pill">${escapeHtml(customerChannel(c))}</span></td><td>${bookings.length}</td><td><div class="consent-chips">${customerConsentMarkup(c)}</div></td><td><button type="button" class="row-action-btn edit-row-btn" data-view-customer="${c.id}">View</button></td></tr>`;
+  }).join(''):`<tr><td colspan="6"><div class="empty-state"><strong>No customers found</strong><span>Add a customer or create a booking to start building your customer list.</span></div></td></tr>`;
+  holder.querySelectorAll('[data-view-customer]').forEach(button=>button.addEventListener('click',()=>openCustomerProfile(button.dataset.viewCustomer)));
+  populateAppointmentCustomerSelect();
+}
+function populateAppointmentCustomerSelect(selectedId=''){
+  const select=document.getElementById('appointmentCustomerSelect');
+  if(!select) return;
+  const current=selectedId || select.value;
+  select.innerHTML=`<option value="">Create or type a new customer</option>${sortedCustomers().map(c=>`<option value="${c.id}">${escapeHtml(c.name)} · ${escapeHtml(customerContact(c))}</option>`).join('')}`;
+  select.value=current;
+}
+function openCustomerForm(customer=null){
+  const form=document.getElementById('customerForm');
+  form.reset();
+  form.dataset.customerId=customer?.id||'';
+  document.getElementById('customerModalEyebrow').textContent=customer?'EDIT CUSTOMER':'NEW CUSTOMER';
+  document.getElementById('customerModalTitle').textContent=customer?'Edit customer':'Add customer';
+  if(customer){
+    form.elements.name.value=customer.name||'';
+    form.elements.phone.value=customer.phone||'';
+    form.elements.email.value=customer.email||'';
+    form.elements.preferredChannel.value=customer.preferredChannel||'auto';
+    form.elements.notes.value=customer.notes||'';
+    form.elements.reminderConsent.checked=customer.reminderConsent!==false;
+    form.elements.marketingConsent.checked=customer.marketingConsent===true;
+    form.elements.whatsappOptIn.checked=customer.whatsappOptIn===true;
+  } else form.elements.reminderConsent.checked=true;
+  openModal('customerModal');
+}
+function saveCustomer(event){
+  event.preventDefault();
+  const form=event.currentTarget, fd=new FormData(form);
+  const name=String(fd.get('name')||'').trim();
+  const phone=String(fd.get('phone')||'').trim();
+  const email=String(fd.get('email')||'').trim();
+  if(!phone&&!email){ showToast('Add at least a phone number or an email address.'); return; }
+  if(email&&!isEmailAddress(email)){ showToast('Enter a valid email address.'); form.elements.email.focus(); return; }
+  const values={name,phone,email,preferredChannel:fd.get('preferredChannel')||'auto',notes:String(fd.get('notes')||'').trim(),reminderConsent:fd.get('reminderConsent')==='on',marketingConsent:fd.get('marketingConsent')==='on',whatsappOptIn:fd.get('whatsappOptIn')==='on'};
+  const id=form.dataset.customerId;
+  if(id){ Object.assign(state.customers.find(c=>c.id===id)||{},values); showToast('Customer details saved.'); }
+  else { state.customers.push({id:crypto.randomUUID(),createdAt:new Date().toISOString(),...values}); showToast('Customer added.'); }
+  save(); closeModal('customerModal'); render(); haptic('success');
+}
+function openCustomerProfile(id){
+  const customer=state.customers.find(c=>c.id===id); if(!customer) return;
+  const bookings=customerBookings(id).sort((a,b)=>dateTimeValue(b)-dateTimeValue(a));
+  document.getElementById('customerProfileTitle').textContent=customer.name||'Customer';
+  const content=document.getElementById('customerProfileContent');
+  content.innerHTML=`<div class="customer-profile-head"><div class="customer-avatar">${escapeHtml((customer.name||'?').split(/\s+/).map(x=>x[0]).slice(0,2).join('').toUpperCase())}</div><div><strong>${escapeHtml(customerContact(customer))}</strong><div class="consent-chips profile-consents">${customerConsentMarkup(customer)}</div></div></div><div class="customer-profile-grid"><div><span>Preferred channel</span><strong>${escapeHtml(customerChannel(customer))}</strong></div><div><span>Total bookings</span><strong>${bookings.length}</strong></div></div>${customer.notes?`<div class="customer-notes"><span>Notes</span><p>${escapeHtml(customer.notes)}</p></div>`:''}<div class="profile-bookings"><div class="profile-section-head"><strong>Booking history</strong><button type="button" class="text-btn" data-edit-customer="${customer.id}">Edit customer</button></div>${bookings.length?bookings.map(a=>`<div class="profile-booking"><div><strong>${escapeHtml(a.service)}</strong><span>${prettyDate(a.date)} · ${a.time}</span></div><span class="status ${a.status}">${statusLabel(a.status)}</span></div>`).join(''):'<p class="profile-empty">No bookings yet.</p>'}<button type="button" class="primary-btn full" data-book-customer="${customer.id}">+ Create booking for ${escapeHtml(customer.name.split(' ')[0]||'customer')}</button></div>`;
+  content.querySelector('[data-edit-customer]')?.addEventListener('click',()=>{closeModal('customerProfileModal');openCustomerForm(customer);});
+  content.querySelector('[data-book-customer]')?.addEventListener('click',()=>{closeModal('customerProfileModal');prepareAppointmentForm(null,customer);openModal('appointmentModal');});
+  openModal('customerProfileModal');
+}
 function messageText(a){
   return state.settings.message48
     .replaceAll('{first_name}', a.client.split(' ')[0])
@@ -406,19 +515,20 @@ function applySidebarPreference(){
 function setActiveView(view){
   document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.view===view));
   document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===view));
-  const titles={dashboard:'Your appointment control center',appointments:'Your bookings',messages:'Send reminders',settings:'Settings'};
-  const eyebrows={dashboard:'YOUR DAILY WORKFLOW',appointments:'BOOKINGS',messages:'REMINDERS',settings:'CONFIRMLY WORKSPACE'};
+  const titles={dashboard:'Your appointment control center',appointments:'Your bookings',customers:'Your customers',messages:'Send reminders',settings:'Settings'};
+  const eyebrows={dashboard:'YOUR DAILY WORKFLOW',appointments:'BOOKINGS',customers:'CUSTOMER DIRECTORY',messages:'REMINDERS',settings:'CONFIRMLY WORKSPACE'};
   document.getElementById('pageTitle').textContent=titles[view];
   document.getElementById('pageEyebrow').textContent=eyebrows[view];
   document.getElementById('sidebar').classList.remove('open');
   setMobileView(view);
   updateTopbarActions(view);
   if(view==='appointments') updateAppointmentsTable();
+  if(view==='customers') updateCustomers();
   if(view==='messages') updateMessages();
   if(view==='dashboard') updateDashboard();
   if(view==='settings') void refreshEmailStatus();
 }
-function render(){ applyTheme(state.settings.theme); applySidebarPreference(); updateWorkspaceTitle(); updateDashboard(); updateQuickStart(); updateAppointmentsTable(); updateMessages(); updateSettings(); updateReminderFlowSummary(); updatePlanUi(); updateTopbarActions(document.querySelector('.view.active')?.id||'dashboard'); }
+function render(){ applyTheme(state.settings.theme); applySidebarPreference(); updateWorkspaceTitle(); updateDashboard(); updateQuickStart(); updateAppointmentsTable(); updateCustomers(); updateMessages(); updateSettings(); updateReminderFlowSummary(); updatePlanUi(); updateTopbarActions(document.querySelector('.view.active')?.id||'dashboard'); }
 
 function renderOnboarding(){
   const dots=[1,2,3];
@@ -562,11 +672,12 @@ async function sendAll(){
     document.querySelectorAll('#sendAllBtn,#bannerSendBtn,#sendAllQueueBtn').forEach(btn=>btn.disabled=false);
   }
 }
-function prepareAppointmentForm(a=null){
+function prepareAppointmentForm(a=null, selectedCustomer=null){
   const form=document.getElementById('appointmentForm');
   const title=document.getElementById('modalTitle');
   const eyebrow=document.getElementById('modalEyebrow');
   const submit=document.getElementById('appointmentSubmitBtn');
+  populateAppointmentCustomerSelect(a?.customerId||selectedCustomer?.id||'');
   editingAppointmentId=a?.id || null;
   if(a){
     title.textContent='Edit appointment';
@@ -589,6 +700,11 @@ function prepareAppointmentForm(a=null){
     form.elements.value.value=state.settings.defaultValue;
     form.elements.preferredChannel.value='auto';
   }
+  if(selectedCustomer && !a){
+    form.elements.client.value=selectedCustomer.name||'';
+    form.elements.contact.value=customerContact(selectedCustomer)==='No contact details'?'':customerContact(selectedCustomer);
+    form.elements.preferredChannel.value=selectedCustomer.preferredChannel||'auto';
+  }
 }
 function openEditAppointment(id){
   const appointment=state.appointments.find(x=>x.id===id);
@@ -600,6 +716,7 @@ function openEditAppointment(id){
 function refreshBookingSurfaces(){
   // Keep the active filters/search exactly as they are while immediately syncing every UI area.
   updateAppointmentsTable();
+  updateCustomers();
   updateDashboard();
   updateMessages();
   updateQuickStart();
@@ -680,6 +797,7 @@ function addAppointment(e){
     e.target.elements.contact.focus();
     return;
   }
+  changes.customerId=ensureCustomerFromBooking(changes,fd.get('customerId')||'');
   if(editingAppointmentId){
     const appointment=state.appointments.find(x=>x.id===editingAppointmentId);
     if(!appointment) { showToast('This booking could not be found.'); return; }
@@ -751,6 +869,16 @@ function bind(){
   document.getElementById('newAppointmentBtn').addEventListener('click',()=>{prepareAppointmentForm();openModal('appointmentModal')});
   document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal(b.dataset.close)));
   document.getElementById('appointmentForm').addEventListener('submit',addAppointment);
+  document.getElementById('appointmentCustomerSelect')?.addEventListener('change',event=>{
+    const customer=state.customers.find(c=>c.id===event.target.value); if(!customer) return;
+    const form=document.getElementById('appointmentForm');
+    form.elements.client.value=customer.name||'';
+    form.elements.contact.value=customerContact(customer)==='No contact details'?'':customerContact(customer);
+    form.elements.preferredChannel.value=customer.preferredChannel||'auto';
+  });
+  document.getElementById('newCustomerBtn')?.addEventListener('click',()=>openCustomerForm());
+  document.getElementById('customerForm')?.addEventListener('submit',saveCustomer);
+  document.getElementById('customerSearchInput')?.addEventListener('input',updateCustomers);
   document.getElementById('statusFilter').addEventListener('change',updateAppointmentsTable);
   document.getElementById('searchInput').addEventListener('input',updateAppointmentsTable);
   document.getElementById('sendAllBtn').addEventListener('click',(event)=>{ event.preventDefault(); void sendAll(); });

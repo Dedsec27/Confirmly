@@ -18,6 +18,7 @@
       <nav class="nav-links" aria-label="Primary">
         <button type="button" class="nav-item active" data-view="dashboard" data-label="Overview" title="Overview"><span>◫</span> Overview</button>
         <button type="button" class="nav-item" data-view="appointments" data-label="Appointments" title="Appointments"><span>▣</span> Appointments</button>
+        <button type="button" class="nav-item" data-view="customers" data-label="Customers" title="Customers"><span>◉</span> Customers</button>
         <button type="button" class="nav-item" data-view="messages" data-label="Reminder queue" title="Reminder queue"><span>✉</span> Reminder queue</button>
         <button type="button" class="nav-item" data-view="settings" data-label="Settings" title="Settings"><span>⚙</span> Settings</button>
       </nav>
@@ -78,6 +79,12 @@
         <div class="table-panel"><div class="table-scroll"><table><thead><tr><th>Client</th><th>Service</th><th>When</th><th>Value</th><th>Status</th><th></th></tr></thead><tbody id="appointmentsTable"></tbody></table></div></div>
       </section>
 
+      <section id="customers" class="view">
+        <div class="section-toolbar"><div><h2>Customers</h2><p>Keep each client’s details, consent and booking history in one place.</p></div><div class="toolbar-controls"><input type="search" id="customerSearchInput" placeholder="Search customers" /><button type="button" class="primary-btn" id="newCustomerBtn">+ New customer</button></div></div>
+        <div class="customer-summary-grid"><article class="customer-summary-card"><span>CONTACTS</span><strong id="customerTotalCount">0</strong><small>Saved customers</small></article><article class="customer-summary-card"><span>REMINDERS</span><strong id="customerReminderConsentCount">0</strong><small>Can receive booking updates</small></article><article class="customer-summary-card"><span>MARKETING</span><strong id="customerMarketingConsentCount">0</strong><small>Opted in for offers</small></article></div>
+        <div class="table-panel"><div class="table-scroll"><table class="customers-table"><thead><tr><th>Customer</th><th>Contact</th><th>Preferred channel</th><th>Bookings</th><th>Consent</th><th></th></tr></thead><tbody id="customersTable"></tbody></table></div></div>
+      </section>
+
       <section id="messages" class="view">
         <div class="section-toolbar"><div><h2>Reminder queue</h2><p>Manual reminders ready to send. Confirmly records every delivery attempt.</p></div><button type="button" class="primary-btn" id="sendAllQueueBtn">Send all ready</button></div>
         <div class="message-layout"><section class="panel queue-panel"><div class="queue-tabs"><button type="button" class="queue-tab active" data-queue="due">Ready <span id="dueCount">0</span></button><button type="button" class="queue-tab" data-queue="sent">Sent <span id="sentCount">0</span></button></div><div id="messageQueue"></div></section><aside class="panel automation-panel"><span class="tiny-label">REMINDER FLOW</span><h3>How your team follows up</h3><div id="reminderFlowSummary"></div><button type="button" class="outline-btn full" data-go="settings">Edit reminder flow</button></aside></div>
@@ -122,6 +129,7 @@
   <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
     <button type="button" class="mobile-nav-item active" data-mobile-view="dashboard"><span>⌂</span><b>Home</b></button>
     <button type="button" class="mobile-nav-item" data-mobile-view="appointments"><span>▣</span><b>Bookings</b></button>
+    <button type="button" class="mobile-nav-item" data-mobile-view="customers"><span>◉</span><b>Customers</b></button>
     <button type="button" class="mobile-nav-item" data-mobile-view="messages"><span>✉</span><b>Reminders</b></button>
     <button type="button" class="mobile-nav-item" data-mobile-view="settings"><span>⚙</span><b>Settings</b></button>
   </nav>
@@ -131,6 +139,7 @@
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <div class="modal-header"><div><p class="eyebrow" id="modalEyebrow">NEW BOOKING</p><h2 id="modalTitle">Add appointment</h2></div><button type="button" class="close-btn" data-close="appointmentModal">×</button></div>
       <form id="appointmentForm" class="form-grid">
+        <label class="full-width booking-customer-select">Existing customer<select name="customerId" id="appointmentCustomerSelect"><option value="">Create or type a new customer</option></select></label>
         <label>Client name<input name="client" required placeholder="e.g. Sofia Petrou" /></label>
         <label>Phone or email<input name="contact" required placeholder="Email required when Email is selected" /></label>
         <label>Service<input name="service" required placeholder="e.g. Haircut + beard" /></label>
@@ -143,6 +152,24 @@
       </form>
     </div>
   </div>
+
+
+  <div class="modal-backdrop hidden" id="customerModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="customerModalTitle">
+      <div class="modal-header"><div><p class="eyebrow" id="customerModalEyebrow">NEW CUSTOMER</p><h2 id="customerModalTitle">Add customer</h2></div><button type="button" class="close-btn" data-close="customerModal">×</button></div>
+      <form id="customerForm" class="form-grid">
+        <label>Full name<input name="name" required placeholder="e.g. Sofia Petrou" /></label>
+        <label>Preferred channel<select name="preferredChannel"><option value="auto">Use business default</option><option value="WhatsApp">WhatsApp</option><option value="SMS">SMS</option><option value="Email">Email</option></select></label>
+        <label>Phone number<input name="phone" inputmode="tel" placeholder="e.g. +30 69…" /></label>
+        <label>Email address<input name="email" type="email" placeholder="e.g. sofia@email.com" /></label>
+        <label class="full-width">Internal notes<textarea name="notes" placeholder="Optional preferences, allergies, details…"></textarea></label>
+        <div class="consent-grid full-width"><label class="consent-option"><input type="checkbox" name="reminderConsent" checked><span><strong>Appointment reminders</strong><small>Can receive confirmations and appointment updates.</small></span></label><label class="consent-option"><input type="checkbox" name="marketingConsent"><span><strong>Offers and updates</strong><small>Opted in to occasional marketing messages.</small></span></label><label class="consent-option"><input type="checkbox" name="whatsappOptIn"><span><strong>WhatsApp opt-in</strong><small>Agreed to receive WhatsApp messages.</small></span></label></div>
+        <div class="modal-actions full-width"><button type="button" class="outline-btn" data-close="customerModal">Cancel</button><button class="primary-btn" type="submit">Save customer</button></div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop hidden" id="customerProfileModal"><div class="modal customer-profile-modal" role="dialog" aria-modal="true" aria-labelledby="customerProfileTitle"><div class="modal-header"><div><p class="eyebrow">CUSTOMER PROFILE</p><h2 id="customerProfileTitle">Customer</h2></div><button type="button" class="close-btn" data-close="customerProfileModal">×</button></div><div id="customerProfileContent"></div></div></div>
 
   <div class="modal-backdrop hidden" id="actionModal"><div class="modal compact"><div class="modal-header"><div><p class="eyebrow">APPOINTMENT ACTION</p><h2 id="actionTitle">Update appointment</h2></div><button type="button" class="close-btn" data-close="actionModal">×</button></div><div id="actionContent"></div></div></div>
 <div class="modal-backdrop hidden" id="deleteModal">

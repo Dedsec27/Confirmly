@@ -109,3 +109,9 @@ This is still a prototype plan selector. Selecting Starter or Pro does not charg
 - Fixed two missing optional onboarding controls that could throw a browser runtime error during startup.
 - App now continues loading cleanly whether the onboarding UI is included or not.
 - Updated PWA cache version.
+
+## v37 — Customers
+- Added a Customers sidebar and mobile tab.
+- Added customer directory, searchable profiles, consent indicators and booking history.
+- Added customer create/edit forms and customer selection in the appointment form.
+- Creating a booking now saves or links the customer automatically.
