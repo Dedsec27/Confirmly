@@ -27,3 +27,7 @@ Do not put the service-role key in browser code. This build keeps it only inside
 4. Return to the dashboard and either focus/reopen the tab or refresh it. The new customer should appear in Customers.
 
 The dashboard remains usable offline, but cross-device QR intake requires Supabase and the Vercel variables above.
+
+
+## v40 fix
+Restores the missing customer choice, QR, and preview modals that caused the **New customer** button to do nothing in v39.
