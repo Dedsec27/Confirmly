@@ -71,3 +71,8 @@ Without account login, each browser otherwise generates a separate private works
 - Forces the first migration from local browser data to Supabase after workspace hydration.
 - Retries the save automatically until it succeeds.
 - API now returns the saved update timestamp for reliable linked-workspace refreshes.
+
+
+## v48 — first workspace cloud seed
+- Ensures the original browser creates its `workspace_state` record immediately, even where its local data looks like defaults.
+- Prevents a browser opened from a shared Workspace Access link from overwriting a missing remote workspace with an empty one.

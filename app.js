@@ -21,12 +21,14 @@ const demo = {
 const builtInSampleBookingIds = new Set(['a1','a2','a3','a4','a5','a6','a7']);
 
 let state = load();
+let openedWithWorkspaceLink = false;
 // A workspace link is the temporary cross-device connection method until full account login exists.
 // Opening Confirmly with ?workspace=<key> attaches this browser to that shared workspace before sync starts.
 (function adoptWorkspaceFromUrl(){
   try{
     const sharedKey=new URLSearchParams(window.location.search).get('workspace');
     if(sharedKey && /^[a-zA-Z0-9-]{12,120}$/.test(sharedKey.trim())){
+      openedWithWorkspaceLink=true;
       state.settings.workspaceKey=sharedKey.trim();
       localStorage.setItem(storageKey,JSON.stringify(state));
     }
@@ -218,7 +220,7 @@ async function syncWorkspaceState(force=false){
   }
 }
 async function hydrateWorkspaceState(){
-  const hadLocalData=hasLocalWorkspaceData();
+  let remoteStateFound=false;
   try{
     const response=await fetch(`/api/workspace-state?workspace=${encodeURIComponent(workspaceKey())}&t=${Date.now()}`,{cache:'no-store',headers:{'Cache-Control':'no-cache'}});
     const payload=await response.json().catch(()=>({}));
@@ -229,6 +231,7 @@ async function hydrateWorkspaceState(){
     }
     if(payload?.updatedAt) window.__confirmlyWorkspaceUpdatedAt=payload.updatedAt;
     if(payload?.state){
+      remoteStateFound=true;
       const remote=normaliseState(payload.state);
       remote.settings.workspaceKey=workspaceKey();
       state=remote;
@@ -241,13 +244,12 @@ async function hydrateWorkspaceState(){
     console.warn('Workspace load failed:',error);
   }finally{
     workspaceHydrated=true;
-    // Critical first-run migration: once hydration finishes, force-save existing browser data.
-    // This cannot be skipped by an early GET error or a timing race.
-    if(hadLocalData && !workspaceInitialSaveComplete){
+    // Seed the source browser even when it has only default-looking data. The old check
+    // skipped the very first cloud row for a new workspace, making cross-device links empty.
+    // A browser opened through a shared workspace link never seeds an empty remote workspace.
+    if(!remoteStateFound && !openedWithWorkspaceLink && !workspaceInitialSaveComplete){
       const saved=await syncWorkspaceState(true);
-      if(!saved){
-        workspaceSyncQueued=true;
-      }
+      if(!saved) workspaceSyncQueued=true;
     }
   }
 }
@@ -1291,7 +1293,7 @@ void hydrateWorkspaceState();
 
 // Keep retrying the one-time browser-to-Supabase migration until it is stored.
 setInterval(()=>{
-  if(!document.hidden && workspaceHydrated && !workspaceInitialSaveComplete && hasLocalWorkspaceData() && !workspaceSyncInFlight){
+  if(!document.hidden && workspaceHydrated && !workspaceInitialSaveComplete && !openedWithWorkspaceLink && !workspaceSyncInFlight){
     void syncWorkspaceState(true);
   }
 }, 4000);
