@@ -1,3 +1,5 @@
+const BUILD_VERSION = 'v50-cloud-startup';
+console.info(`[Confirmly ${BUILD_VERSION}] loading`);
 const storageKey = 'confirmly_mvp_v3';
 // Kept separately so the user-selected default channel survives older state shapes, re-renders, and PWA upgrades.
 const defaultChannelKey = 'confirmly_default_channel_v15';
@@ -762,7 +764,28 @@ function setActiveView(view){
   if(view==='dashboard') updateDashboard();
   if(view==='settings') void refreshEmailStatus();
 }
-function render(){ applyTheme(state.settings.theme); applySidebarPreference(); updateWorkspaceTitle(); updateDashboard(); updateQuickStart(); updateAppointmentsTable(); updateCustomers(); updateMessages(); updateSettings(); updateReminderFlowSummary(); updatePlanUi(); updateTopbarActions(document.querySelector('.view.active')?.id||'dashboard'); }
+function render(){
+  // UI defects must never stop workspace persistence or any other startup flow.
+  const view=document.querySelector('.view.active')?.id||'dashboard';
+  const updates=[
+    ['theme',()=>applyTheme(state.settings.theme)],
+    ['sidebar',applySidebarPreference],
+    ['workspace title',updateWorkspaceTitle],
+    ['dashboard',updateDashboard],
+    ['quick start',updateQuickStart],
+    ['appointments',updateAppointmentsTable],
+    ['customers',updateCustomers],
+    ['messages',updateMessages],
+    ['settings',updateSettings],
+    ['reminder flow',updateReminderFlowSummary],
+    ['plan',updatePlanUi],
+    ['topbar',()=>updateTopbarActions(view)]
+  ];
+  updates.forEach(([label,fn])=>{
+    try{ fn(); }
+    catch(error){ console.warn(`[Confirmly ${BUILD_VERSION}] render skipped: ${label}`,error); }
+  });
+}
 
 function renderOnboarding(){
   const dots=[1,2,3];
@@ -1290,10 +1313,19 @@ document.getElementById('mobileAddBtn')?.addEventListener('click',()=>{
 
 bind();
 applyTheme(state.settings.theme);
-render();
+// Start cloud hydration before rendering so a UI-only issue can never prevent the first save.
+void hydrateWorkspaceState();
+try{ render(); }catch(error){ console.warn(`[Confirmly ${BUILD_VERSION}] initial render failed`,error); }
 void refreshEmailStatus();
 void syncRemoteCustomers();
-void hydrateWorkspaceState();
+
+// Force cloud creation after hydration, then retry a few times while the tab remains open.
+[800, 2500, 6000].forEach(delay=>setTimeout(()=>{
+  if(workspaceHydrated && !openedWithWorkspaceLink && !workspaceInitialSaveComplete){
+    console.info(`[Confirmly ${BUILD_VERSION}] retrying initial cloud save`);
+    void syncWorkspaceState(true);
+  }
+},delay));
 
 // Keep retrying the one-time browser-to-Supabase migration until it is stored.
 setInterval(()=>{
