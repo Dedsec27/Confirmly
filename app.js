@@ -309,6 +309,58 @@ function populateAppointmentCustomerSelect(selectedId=''){
   select.innerHTML=`<option value="">Create or type a new customer</option>${sortedCustomers().map(c=>`<option value="${c.id}">${escapeHtml(c.name)} · ${escapeHtml(customerContact(c))}</option>`).join('')}`;
   select.value=current;
 }
+
+function remoteCustomerToLocal(row){
+  return {
+    id: row.id,
+    remoteId: row.id,
+    name: row.name || '',
+    phone: row.phone || '',
+    email: row.email || '',
+    preferredChannel: row.preferred_channel || 'Email',
+    reminderConsent: row.reminder_consent === true,
+    marketingConsent: row.marketing_consent === true,
+    whatsappOptIn: row.whatsapp_opt_in === true,
+    notes: '',
+    intakeSource: row.source || 'QR form',
+    createdAt: row.created_at || new Date().toISOString()
+  };
+}
+
+async function syncRemoteCustomers(){
+  const workspaceKey = String(state.settings.workspaceKey || '').trim();
+  if(!workspaceKey) return;
+  try {
+    const response = await fetch(`/api/customers?workspace=${encodeURIComponent(workspaceKey)}`, { cache: 'no-store' });
+    if(!response.ok) return;
+    const payload = await response.json();
+    const remoteCustomers = Array.isArray(payload.customers) ? payload.customers : [];
+    let changed = false;
+    remoteCustomers.forEach(row => {
+      const incoming = remoteCustomerToLocal(row);
+      const existing = state.customers.find(customer =>
+        customer.remoteId === incoming.remoteId ||
+        customer.id === incoming.remoteId ||
+        (incoming.email && String(customer.email || '').toLowerCase() === incoming.email.toLowerCase()) ||
+        (incoming.phone && String(customer.phone || '').replace(/\s/g,'') === incoming.phone.replace(/\s/g,''))
+      );
+      if(existing){
+        const preservedNotes = existing.notes || '';
+        Object.assign(existing, incoming, { notes: preservedNotes || incoming.notes });
+      } else {
+        state.customers.push(incoming);
+      }
+      changed = true;
+    });
+    if(changed){
+      save();
+      render();
+    }
+  } catch {
+    // Dashboard keeps working offline and retries on the next load/focus.
+  }
+}
+
 function getCustomerIntakeUrl(){
   const workspaceKey=state.settings.workspaceKey || (state.settings.workspaceKey=crypto.randomUUID?.()||String(Date.now()+Math.random()));
   const session=customerIntakeSession || (customerIntakeSession=crypto.randomUUID?.()||String(Date.now()+Math.random()));
@@ -1095,6 +1147,8 @@ bind();
 applyTheme(state.settings.theme);
 render();
 void refreshEmailStatus();
+void syncRemoteCustomers();
+window.addEventListener('focus', () => { void syncRemoteCustomers(); });
 if(!onboarding.completed){ renderOnboarding(); openModal('onboardingModal'); }
 
 // iPhone / PWA install hint. Safari requires the user to use Share → Add to Home Screen.
