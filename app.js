@@ -68,6 +68,7 @@ function normaliseState(data){
   next.settings.plan = ['Trial','Starter','Pro'].includes(next.settings.plan) ? next.settings.plan : 'Trial';
   if(!Array.isArray(next.settings.availableChannels)||!next.settings.availableChannels.length) next.settings.availableChannels=['WhatsApp','SMS','Email'];
   next.settings.sidebarCollapsed = next.settings.sidebarCollapsed === true;
+  next.settings.workspaceKey = String(next.settings.workspaceKey || (crypto.randomUUID?.() || String(Date.now()+Math.random()))).trim();
   const defaultFlow = structuredClone(demo.settings.reminderFlow);
   next.settings.reminderFlow = {
     first:{...defaultFlow.first,...(next.settings.reminderFlow?.first||{})},
@@ -135,8 +136,89 @@ function load(){
   }
 }
 function loadOnboarding(){ try { return {...{step:1,completed:false,detailsSet:false,bookingAdded:false,reminderSent:false}, ...(JSON.parse(localStorage.getItem(onboardingKey)) || {})}; } catch { return {step:1,completed:false,detailsSet:false,bookingAdded:false,reminderSent:false}; } }
-function save(){ localStorage.setItem(storageKey,JSON.stringify(state)); }
+function save(){
+  localStorage.setItem(storageKey,JSON.stringify(state));
+  scheduleWorkspaceSync();
+}
 function saveOnboarding(){ localStorage.setItem(onboardingKey,JSON.stringify(onboarding)); }
+let workspaceSyncTimer=null;
+let workspaceHydrated=false;
+let workspaceSyncInFlight=false;
+let workspaceSyncQueued=false;
+function workspaceKey(){
+  const key=String(state?.settings?.workspaceKey||'').trim();
+  if(key) return key;
+  const generated=crypto.randomUUID?.()||String(Date.now()+Math.random());
+  state.settings.workspaceKey=generated;
+  localStorage.setItem(storageKey,JSON.stringify(state));
+  return generated;
+}
+function serialisableWorkspaceState(){
+  return {
+    settings: state.settings,
+    appointments: state.appointments,
+    customers: state.customers
+  };
+}
+function scheduleWorkspaceSync(){
+  if(!workspaceHydrated) return;
+  workspaceSyncQueued=true;
+  clearTimeout(workspaceSyncTimer);
+  workspaceSyncTimer=setTimeout(()=>void syncWorkspaceState(),600);
+}
+async function syncWorkspaceState(){
+  if(!workspaceHydrated || workspaceSyncInFlight || !workspaceSyncQueued) return;
+  workspaceSyncQueued=false;
+  workspaceSyncInFlight=true;
+  try{
+    const response=await fetch('/api/workspace-state',{
+      method:'PUT',
+      headers:{'Content-Type':'application/json','Cache-Control':'no-cache'},
+      cache:'no-store',
+      body:JSON.stringify({workspaceKey:workspaceKey(), state:serialisableWorkspaceState()})
+    });
+    if(!response.ok){
+      const body=await response.json().catch(()=>({}));
+      console.warn('Workspace save failed:', body.error||response.status);
+    }
+  }catch(error){
+    console.warn('Workspace save failed:',error);
+  }finally{
+    workspaceSyncInFlight=false;
+    if(workspaceSyncQueued) void syncWorkspaceState();
+  }
+}
+async function hydrateWorkspaceState(){
+  const hadLocalData=state.appointments.length>0 || state.customers.length>0 || state.settings.businessName!==demo.settings.businessName;
+  try{
+    const response=await fetch(`/api/workspace-state?workspace=${encodeURIComponent(workspaceKey())}&t=${Date.now()}`,{cache:'no-store',headers:{'Cache-Control':'no-cache'}});
+    if(!response.ok){
+      const body=await response.json().catch(()=>({}));
+      console.warn('Workspace load failed:',body.error||response.status);
+      workspaceHydrated=true;
+      return;
+    }
+    const payload=await response.json();
+    if(payload?.state){
+      const remote=normaliseState(payload.state);
+      // Workspace key always belongs to the currently opened workspace, not a copied payload.
+      remote.settings.workspaceKey=workspaceKey();
+      state=remote;
+      localStorage.setItem(storageKey,JSON.stringify(state));
+      render();
+    } else if(hadLocalData){
+      workspaceHydrated=true;
+      workspaceSyncQueued=true;
+      await syncWorkspaceState();
+      return;
+    }
+  }catch(error){
+    console.warn('Workspace load failed:',error);
+  }finally{
+    workspaceHydrated=true;
+  }
+}
+
 function money(n){ return new Intl.NumberFormat('en-IE',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(Number(n||0)); }
 function prettyDate(date){ return new Intl.DateTimeFormat('en-GB',{weekday:'short',day:'numeric',month:'short'}).format(new Date(date+'T12:00:00')); }
 function statusLabel(s){ return s==='no-show'?'No-show':s.charAt(0).toUpperCase()+s.slice(1); }
@@ -1163,6 +1245,7 @@ applyTheme(state.settings.theme);
 render();
 void refreshEmailStatus();
 void syncRemoteCustomers();
+void hydrateWorkspaceState();
 
 // Pull new QR-created customers automatically while the dashboard is open.
 // This keeps cross-device intake feeling live without exposing a manual sync control.

@@ -52,3 +52,12 @@ Restores the missing customer choice, QR, and preview modals that caused the **N
 
 ## v44 fix
 Fixes a dashboard render crash caused by a missing `bannerCopy` element. The crash prevented the automatic customer-sync timer from ever starting.
+
+## v45 — Supabase-backed core workspace data
+Run `supabase/workspace-state.sql` in Supabase SQL Editor. This adds shared cloud persistence for business settings, appointments and manually-created customer records, while keeping a local browser backup and the existing QR customer intake table.
+
+Requires the existing Vercel environment variables:
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+After deployment, the first browser that opens an existing workspace migrates its local Confirmly data to Supabase automatically. Subsequent changes sync after a short delay. Authentication/workspace authorization remains the next planned milestone; do not treat shared QR URLs as private credentials.
