@@ -65,3 +65,9 @@ After deployment, the first browser that opens an existing workspace migrates it
 
 ## v46 — cross-device workspace link
 Without account login, each browser otherwise generates a separate private workspace key. In Settings, copy the private Workspace Access link and open it on another device/browser to connect it to the same Supabase-backed workspace. Treat this link like a password.
+
+
+## v47 workspace persistence fix
+- Forces the first migration from local browser data to Supabase after workspace hydration.
+- Retries the save automatically until it succeeds.
+- API now returns the saved update timestamp for reliable linked-workspace refreshes.

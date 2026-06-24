@@ -26,21 +26,22 @@ module.exports = async (req,res) => {
       return res.status(200).json({state:rows[0]?.state||null,updatedAt:rows[0]?.updated_at||null});
     }catch{ return res.status(500).json({error:'Workspace sync is temporarily unavailable.'}); }
   }
-  if(req.method==='PUT'){
+  if(req.method==='PUT' || req.method==='POST'){
     const workspaceKey=String(req.body?.workspaceKey||'').trim();
     if(!validKey(workspaceKey)) return res.status(400).json({error:'A valid workspace is required.'});
     const payload={workspace_key:workspaceKey,state:safeState(req.body?.state),updated_at:new Date().toISOString()};
     try{
       const response=await fetch(endpoint('/rest/v1/workspace_state?on_conflict=workspace_key'),{
         method:'POST',
-        headers:{...headers,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=minimal'},
+        headers:{...headers,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates,return=representation'},
         body:JSON.stringify(payload)
       });
       const text=await response.text();
       if(!response.ok) return res.status(response.status).json({error:'Could not save workspace data.',details:text.slice(0,500)});
-      return res.status(200).json({ok:true});
+      const rows=JSON.parse(text||'[]');
+      return res.status(200).json({ok:true,updatedAt:rows[0]?.updated_at||payload.updated_at});
     }catch{ return res.status(500).json({error:'Workspace save is temporarily unavailable.'}); }
   }
-  res.setHeader('Allow','GET, PUT');
+  res.setHeader('Allow','GET, PUT, POST');
   return res.status(405).json({error:'Method not allowed'});
 };

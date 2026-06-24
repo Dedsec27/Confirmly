@@ -156,6 +156,8 @@ let workspaceSyncTimer=null;
 let workspaceHydrated=false;
 let workspaceSyncInFlight=false;
 let workspaceSyncQueued=false;
+let workspaceInitialSaveComplete=false;
+let workspaceLastError='';
 function workspaceKey(){
   const key=String(state?.settings?.workspaceKey||'').trim();
   if(key) return key;
@@ -176,14 +178,17 @@ function serialisableWorkspaceState(){
     customers: state.customers
   };
 }
+function hasLocalWorkspaceData(){
+  return state.appointments.length>0 || state.customers.length>0 || state.settings.businessName!==demo.settings.businessName;
+}
 function scheduleWorkspaceSync(){
   if(!workspaceHydrated) return;
   workspaceSyncQueued=true;
   clearTimeout(workspaceSyncTimer);
   workspaceSyncTimer=setTimeout(()=>void syncWorkspaceState(),600);
 }
-async function syncWorkspaceState(){
-  if(!workspaceHydrated || workspaceSyncInFlight || !workspaceSyncQueued) return;
+async function syncWorkspaceState(force=false){
+  if(!workspaceHydrated || workspaceSyncInFlight || (!workspaceSyncQueued && !force)) return false;
   workspaceSyncQueued=false;
   workspaceSyncInFlight=true;
   try{
@@ -193,46 +198,57 @@ async function syncWorkspaceState(){
       cache:'no-store',
       body:JSON.stringify({workspaceKey:workspaceKey(), state:serialisableWorkspaceState()})
     });
+    const body=await response.json().catch(()=>({}));
     if(!response.ok){
-      const body=await response.json().catch(()=>({}));
-      console.warn('Workspace save failed:', body.error||response.status);
+      workspaceLastError=body.error||`Save failed (${response.status})`;
+      console.warn('Workspace save failed:', workspaceLastError, body.details||'');
+      return false;
     }
+    workspaceLastError='';
+    workspaceInitialSaveComplete=true;
+    window.__confirmlyWorkspaceUpdatedAt=body.updatedAt||new Date().toISOString();
+    return true;
   }catch(error){
+    workspaceLastError='Could not reach workspace sync.';
     console.warn('Workspace save failed:',error);
+    return false;
   }finally{
     workspaceSyncInFlight=false;
     if(workspaceSyncQueued) void syncWorkspaceState();
   }
 }
 async function hydrateWorkspaceState(){
-  const hadLocalData=state.appointments.length>0 || state.customers.length>0 || state.settings.businessName!==demo.settings.businessName;
+  const hadLocalData=hasLocalWorkspaceData();
   try{
     const response=await fetch(`/api/workspace-state?workspace=${encodeURIComponent(workspaceKey())}&t=${Date.now()}`,{cache:'no-store',headers:{'Cache-Control':'no-cache'}});
+    const payload=await response.json().catch(()=>({}));
     if(!response.ok){
-      const body=await response.json().catch(()=>({}));
-      console.warn('Workspace load failed:',body.error||response.status);
-      workspaceHydrated=true;
+      workspaceLastError=payload.error||`Load failed (${response.status})`;
+      console.warn('Workspace load failed:',workspaceLastError,payload.details||'');
       return;
     }
-    const payload=await response.json();
     if(payload?.updatedAt) window.__confirmlyWorkspaceUpdatedAt=payload.updatedAt;
     if(payload?.state){
       const remote=normaliseState(payload.state);
-      // Workspace key always belongs to the currently opened workspace, not a copied payload.
       remote.settings.workspaceKey=workspaceKey();
       state=remote;
       localStorage.setItem(storageKey,JSON.stringify(state));
+      workspaceInitialSaveComplete=true;
       render();
-    } else if(hadLocalData){
-      workspaceHydrated=true;
-      workspaceSyncQueued=true;
-      await syncWorkspaceState();
-      return;
     }
   }catch(error){
+    workspaceLastError='Could not reach workspace sync.';
     console.warn('Workspace load failed:',error);
   }finally{
     workspaceHydrated=true;
+    // Critical first-run migration: once hydration finishes, force-save existing browser data.
+    // This cannot be skipped by an early GET error or a timing race.
+    if(hadLocalData && !workspaceInitialSaveComplete){
+      const saved=await syncWorkspaceState(true);
+      if(!saved){
+        workspaceSyncQueued=true;
+      }
+    }
   }
 }
 
@@ -1272,6 +1288,13 @@ render();
 void refreshEmailStatus();
 void syncRemoteCustomers();
 void hydrateWorkspaceState();
+
+// Keep retrying the one-time browser-to-Supabase migration until it is stored.
+setInterval(()=>{
+  if(!document.hidden && workspaceHydrated && !workspaceInitialSaveComplete && hasLocalWorkspaceData() && !workspaceSyncInFlight){
+    void syncWorkspaceState(true);
+  }
+}, 4000);
 
 // Keep the shared workspace current across linked devices. This only pulls when there is no local save queued.
 setInterval(async()=>{
