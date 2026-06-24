@@ -346,14 +346,18 @@ function updateDashboard(){
 }
 
 function updateQuickStart(){
+  // Some dashboard layouts do not include the legacy onboarding checklist.
+  // Rendering must never stop the app or block cloud workspace sync when it is absent.
   const holder=document.getElementById('quickStartChecklist');
+  const panel=document.getElementById('gettingStarted');
+  if(!holder && !panel) return;
   const items=[
     [onboarding.detailsSet,'Set business details'],
     [onboarding.bookingAdded,'Add a booking'],
     [onboarding.reminderSent,'Send a reminder']
   ];
-  holder.innerHTML=items.map(([done,label])=>`<div class="check-item ${done?'done':''}"><span class="check">${done?'✓':'1'}</span>${label}</div>`).join('');
-  document.getElementById('gettingStarted').classList.toggle('hidden-onboarding', onboarding.completed);
+  if(holder) holder.innerHTML=items.map(([done,label])=>`<div class="check-item ${done?'done':''}"><span class="check">${done?'✓':'1'}</span>${label}</div>`).join('');
+  if(panel) panel.classList.toggle('hidden-onboarding', onboarding.completed);
 }
 
 function bindBookingRowActions(){
