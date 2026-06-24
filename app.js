@@ -21,6 +21,17 @@ const demo = {
 const builtInSampleBookingIds = new Set(['a1','a2','a3','a4','a5','a6','a7']);
 
 let state = load();
+// A workspace link is the temporary cross-device connection method until full account login exists.
+// Opening Confirmly with ?workspace=<key> attaches this browser to that shared workspace before sync starts.
+(function adoptWorkspaceFromUrl(){
+  try{
+    const sharedKey=new URLSearchParams(window.location.search).get('workspace');
+    if(sharedKey && /^[a-zA-Z0-9-]{12,120}$/.test(sharedKey.trim())){
+      state.settings.workspaceKey=sharedKey.trim();
+      localStorage.setItem(storageKey,JSON.stringify(state));
+    }
+  }catch{}
+})();
 let onboarding = loadOnboarding();
 let currentQueue = 'due';
 let activeAppointmentId = null;
@@ -153,6 +164,11 @@ function workspaceKey(){
   localStorage.setItem(storageKey,JSON.stringify(state));
   return generated;
 }
+function workspaceAccessUrl(){
+  const url=new URL(window.location.href);
+  url.searchParams.set('workspace',workspaceKey());
+  return url.toString();
+}
 function serialisableWorkspaceState(){
   return {
     settings: state.settings,
@@ -199,6 +215,7 @@ async function hydrateWorkspaceState(){
       return;
     }
     const payload=await response.json();
+    if(payload?.updatedAt) window.__confirmlyWorkspaceUpdatedAt=payload.updatedAt;
     if(payload?.state){
       const remote=normaliseState(payload.state);
       // Workspace key always belongs to the currently opened workspace, not a copied payload.
@@ -649,6 +666,8 @@ function updateReminderFlowSummary(){
 }
 function updateSettings(){
   document.getElementById('businessName').value=state.settings.businessName;
+  const workspaceAccessField=document.getElementById('workspaceAccessUrl');
+  if(workspaceAccessField) workspaceAccessField.value=workspaceAccessUrl();
   document.getElementById('channel').value=state.settings.channel;
   document.getElementById('defaultValue').value=state.settings.defaultValue;
   document.getElementById('themeSelect').value=state.settings.theme || 'light';
@@ -1075,6 +1094,13 @@ function bind(){
   document.getElementById('doneCustomerQrBtn')?.addEventListener('click',()=>closeModal('customerQrModal'));
   document.getElementById('previewCustomerIntakeBtn')?.addEventListener('click',openCustomerIntakePreview);
   document.getElementById('copyCustomerIntakeUrlBtn')?.addEventListener('click',async()=>{ const value=document.getElementById('customerIntakeUrl')?.value||''; try { await navigator.clipboard.writeText(value); showToast('Form link copied.'); } catch { const field=document.getElementById('customerIntakeUrl'); field?.select(); document.execCommand('copy'); showToast('Form link copied.'); } });
+  document.getElementById('copyWorkspaceLinkBtn')?.addEventListener('click',async()=>{
+    const value=workspaceAccessUrl();
+    const field=document.getElementById('workspaceAccessUrl');
+    if(field) field.value=value;
+    try { await navigator.clipboard.writeText(value); showToast('Private workspace link copied. Open it on your other device.'); }
+    catch { field?.select(); document.execCommand('copy'); showToast('Private workspace link copied.'); }
+  });
   document.getElementById('customerIntakePreviewForm')?.addEventListener('submit',saveCustomerIntakePreview);
   document.getElementById('customerForm')?.addEventListener('submit',saveCustomer);
   document.getElementById('customerSearchInput')?.addEventListener('input',updateCustomers);
@@ -1246,6 +1272,24 @@ render();
 void refreshEmailStatus();
 void syncRemoteCustomers();
 void hydrateWorkspaceState();
+
+// Keep the shared workspace current across linked devices. This only pulls when there is no local save queued.
+setInterval(async()=>{
+  if(document.hidden || workspaceSyncInFlight || workspaceSyncQueued || !workspaceHydrated) return;
+  try{
+    const response=await fetch(`/api/workspace-state?workspace=${encodeURIComponent(workspaceKey())}&t=${Date.now()}`,{cache:'no-store'});
+    if(!response.ok) return;
+    const payload=await response.json();
+    if(payload?.state && payload.updatedAt && payload.updatedAt!==window.__confirmlyWorkspaceUpdatedAt){
+      const remote=normaliseState(payload.state);
+      remote.settings.workspaceKey=workspaceKey();
+      state=remote;
+      localStorage.setItem(storageKey,JSON.stringify(state));
+      window.__confirmlyWorkspaceUpdatedAt=payload.updatedAt;
+      render();
+    }
+  }catch{}
+}, 5000);
 
 // Pull new QR-created customers automatically while the dashboard is open.
 // This keeps cross-device intake feeling live without exposing a manual sync control.

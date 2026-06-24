@@ -61,3 +61,7 @@ Requires the existing Vercel environment variables:
 - `SUPABASE_SERVICE_ROLE_KEY`
 
 After deployment, the first browser that opens an existing workspace migrates its local Confirmly data to Supabase automatically. Subsequent changes sync after a short delay. Authentication/workspace authorization remains the next planned milestone; do not treat shared QR URLs as private credentials.
+
+
+## v46 — cross-device workspace link
+Without account login, each browser otherwise generates a separate private workspace key. In Settings, copy the private Workspace Access link and open it on another device/browser to connect it to the same Supabase-backed workspace. Treat this link like a password.
