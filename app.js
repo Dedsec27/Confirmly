@@ -334,9 +334,6 @@ async function syncRemoteCustomers(options={}){
     if(notify) showToast('Open the QR profile option once to create this workspace connection.');
     return false;
   }
-  const syncButton=document.getElementById('syncCustomersBtn');
-  const originalLabel=syncButton?.textContent;
-  if(syncButton){ syncButton.disabled=true; syncButton.textContent='Syncing…'; }
   try {
     const response = await fetch(`/api/customers?workspace=${encodeURIComponent(workspaceKey)}`, { cache: 'no-store' });
     const payload = await response.json().catch(()=>({}));
@@ -372,8 +369,6 @@ async function syncRemoteCustomers(options={}){
     console.error('Confirmly customer sync failed:', error);
     if(notify) showToast('Could not connect to the customer database.');
     return false;
-  } finally {
-    if(syncButton){ syncButton.disabled=false; syncButton.textContent=originalLabel || '↻ Sync'; }
   }
 }
 
@@ -989,7 +984,6 @@ function bind(){
     form.elements.preferredChannel.value=customer.preferredChannel||'auto';
   });
   document.getElementById('newCustomerBtn')?.addEventListener('click',openCustomerChoice);
-  document.getElementById('syncCustomersBtn')?.addEventListener('click',()=>{ void syncRemoteCustomers({notify:true}); });
   document.getElementById('addCustomerManuallyBtn')?.addEventListener('click',()=>{ closeModal('customerChoiceModal'); openCustomerForm(); });
   document.getElementById('customerMadeProfileBtn')?.addEventListener('click',openCustomerQr);
   document.getElementById('doneCustomerQrBtn')?.addEventListener('click',()=>closeModal('customerQrModal'));
@@ -1165,7 +1159,21 @@ applyTheme(state.settings.theme);
 render();
 void refreshEmailStatus();
 void syncRemoteCustomers();
+
+// Pull new QR-created customers automatically while the dashboard is open.
+// This keeps cross-device intake feeling live without exposing a manual sync control.
+let customerSyncTimer=null;
+function startCustomerAutoSync(){
+  if(customerSyncTimer) clearInterval(customerSyncTimer);
+  customerSyncTimer=setInterval(()=>{
+    if(!document.hidden) void syncRemoteCustomers();
+  }, 8000);
+}
+startCustomerAutoSync();
 window.addEventListener('focus', () => { void syncRemoteCustomers(); });
+window.addEventListener('visibilitychange', () => {
+  if(!document.hidden) void syncRemoteCustomers();
+});
 if(!onboarding.completed){ renderOnboarding(); openModal('onboardingModal'); }
 
 // iPhone / PWA install hint. Safari requires the user to use Share → Add to Home Screen.

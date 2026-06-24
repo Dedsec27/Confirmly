@@ -37,3 +37,8 @@ Restores the missing customer choice, QR, and preview modals that caused the **N
 - Adds a **Sync** button to Customers.
 - Shows a clear message when the customer API/database connection fails instead of failing silently.
 - Manual sync refreshes the customers table without requiring a full page reload.
+
+
+## v42 — Automatic customer sync
+- Removes the visible Customers “Sync” button.
+- QR-created customer profiles now refresh automatically every 8 seconds while the dashboard is open, and immediately when the tab regains focus.
